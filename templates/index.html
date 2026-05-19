@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>HR Chatbot</title>
+</head>
+
+<body>
+
+    <h1>HR Chatbot</h1>
+
+    <div id="chat-box">
+        <p><b>Bot:</b> Welcome to HR Chatbot</p>
+    </div>
+
+    <input type="text" id="user-input" placeholder="Type message">
+    
+    <button>Send</button>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
