@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Leave Approvals | HR Assistant</title>
+</head>
+<body>
+    <main class="manager-shell">
+        <header class="manager-header">
+            <div>
+                <p class="eyebrow">Manager Workspace</p>
+                <h1>Leave Approvals</h1>
+            </div>
+            <a class="secondary-link" href="/">Back to Chat</a>
+        </header>
+
+        <section class="manager-tools">
+            <nav class="manager-tabs" aria-label="Leave approval views">
+                <a class="tab-link {% if active_view == 'pending' %}active{% endif %}" href="/manager/leaves">
+                    Pending
+                    <span>{{ pending_count }}</span>
+                </a>
+                <a class="tab-link {% if active_view == 'approved' %}active{% endif %}" href="/manager/leaves?view=approved">
+                    Approved
+                    <span>{{ approved_count }}</span>
+                </a>
+            </nav>
+
+            <form class="leave-date-filter" action="/manager/leaves" method="GET">
+                <input type="hidden" name="view" value="{{ active_view }}">
+                <label for="leave-date">Employees on leave</label>
+                <div>
+                    <input type="date" id="leave-date" name="leave_date" value="{{ selected_date }}">
+                    <button type="submit">Check</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="on-leave-summary">
+            <div>
+                <p class="eyebrow">{{ selected_date }}</p>
+                <h2>{{ employees_on_leave|length }} employee{% if employees_on_leave|length != 1 %}s{% endif %} on leave</h2>
+            </div>
+            {% if employees_on_leave %}
+            <div class="on-leave-list">
+                {% for leave in employees_on_leave %}
+                <span>{{ leave.employee_name }} &middot; {{ leave.leave_type }}</span>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="muted">No approved leaves found for this date.</p>
+            {% endif %}
+        </section>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <section class="flash-list" aria-live="polite">
+                {% for category, message in messages %}
+                <p class="flash-message {{ category }}">{{ message }}</p>
+                {% endfor %}
+            </section>
+            {% endif %}
+        {% endwith %}
+
+        <section class="approval-list">
+            {% if leaves %}
+                {% for leave in leaves %}
+                <article class="approval-card {% if leave._is_new %}new{% endif %}">
+                    <div>
+                        <p class="eyebrow">Request #{{ leave.id }}</p>
+                        <h2>{{ leave.leave_type }}</h2>
+                        <p class="muted">
+                            {{ leave.employee_name }}
+                            {% if leave._is_new %}
+                            <span class="new-tag">New</span>
+                            {% endif %}
+                        </p>
+                    </div>
+
+                    <dl>
+                        <div>
+                            <dt>From</dt>
+                            <dd>{{ leave.from_date }}</dd>
+                        </div>
+                        <div>
+                            <dt>To</dt>
+                            <dd>{{ leave.to_date }}</dd>
+                        </div>
+                        <div>
+                            <dt>Duration</dt>
+                            <dd>{{ leave.leave_duration }}</dd>
+                        </div>
+                        <div>
+                            <dt>Reason</dt>
+                            <dd>{{ leave.reason or "Not provided" }}</dd>
+                        </div>
+                    </dl>
+
+                    {% if active_view == "pending" %}
+                    <div class="approval-actions">
+                        <form class="approve-form" action="/manager/leaves/{{ leave.id }}/approve" method="POST">
+                            <button type="submit">Approve</button>
+                        </form>
+                        <form class="reject-form" action="/manager/leaves/{{ leave.id }}/reject" method="POST">
+                            <label class="reject-reason">
+                                Rejection reason
+                                <textarea name="reason" rows="2" placeholder="Explain the business or policy reason" required></textarea>
+                            </label>
+                            <button type="submit" class="danger">Reject</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </article>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <h2>No {{ active_view }} requests</h2>
+                    <p class="muted">
+                        {% if active_view == "pending" %}
+                        New leave requests will appear here for manager review.
+                        {% else %}
+                        Approved leave requests will appear here after manager approval.
+                        {% endif %}
+                    </p>
+                </div>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>

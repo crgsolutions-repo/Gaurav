@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>My Leaves | HR Assistant</title>
+</head>
+<body>
+    <main class="manager-shell">
+        <header class="manager-header">
+            <div>
+                <p class="eyebrow">Employee Workspace</p>
+                <h1>My Leave Requests</h1>
+                <p class="muted">{{ employee_name }}</p>
+            </div>
+            <a class="secondary-link" href="/">Back to Chat</a>
+        </header>
+
+        <section class="approval-list">
+            {% if leaves %}
+                {% for leave in leaves %}
+                <article class="approval-card">
+                    <div>
+                        <p class="eyebrow">Request #{{ leave.id }}</p>
+                        <h2>{{ leave.leave_type }}</h2>
+                        <p class="status-line {{ leave.status|lower }}">{{ leave.status }}</p>
+                    </div>
+
+                    <dl>
+                        <div>
+                            <dt>From</dt>
+                            <dd>{{ leave.from_date }}</dd>
+                        </div>
+                        <div>
+                            <dt>To</dt>
+                            <dd>{{ leave.to_date }}</dd>
+                        </div>
+                        <div>
+                            <dt>Duration</dt>
+                            <dd>{{ leave.leave_duration }}</dd>
+                        </div>
+                        <div>
+                            <dt>Reason</dt>
+                            <dd>{{ leave.reason or "Not provided" }}</dd>
+                        </div>
+                    </dl>
+
+                    {% if leave.status == "Rejected" %}
+                    <section class="rejection-note">
+                        <p class="eyebrow">Rejection Reason</p>
+                        <p>{{ leave.rejection_reason or "No reason provided." }}</p>
+                        {% if leave.rejected_by %}
+                        <p class="muted">Rejected by {{ leave.rejected_by }}</p>
+                        {% endif %}
+                    </section>
+                    {% endif %}
+                </article>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <h2>No leave requests</h2>
+                    <p class="muted">Your submitted leave requests will appear here.</p>
+                </div>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>

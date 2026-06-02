@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>My Payslip</title>
+</head>
+<body>
+    <main class="payslip-shell">
+        <header class="manager-header">
+            <div>
+                <p class="eyebrow">Payroll</p>
+                <h1>My Payslip</h1>
+                <p class="muted">Salary records are shown from payroll data linked to your employee profile.</p>
+            </div>
+            <a class="secondary-link" href="/">Back to Assistant</a>
+        </header>
+
+        {% if not record %}
+        <section class="empty-state">
+            <h2>No payroll record found</h2>
+            <p class="muted">
+                {% if requested_month %}
+                No payroll record was found for {{ requested_month }}.
+                {% else %}
+                No payroll record is available for your employee profile yet.
+                {% endif %}
+            </p>
+        </section>
+        {% else %}
+        <section class="payslip-card">
+            <div class="payslip-topline">
+                <div>
+                    <p class="eyebrow">Enterprise HR Assistant</p>
+                    <h2>Payslip for {{ record.salary_month }}</h2>
+                    <p class="muted">Generated on {{ generated_on }}</p>
+                </div>
+                <a class="download-button" href="/payslip/download?month={{ record.salary_month|urlencode }}">Download PDF</a>
+            </div>
+
+            <div class="payslip-grid">
+                <div>
+                    <dt>Employee ID</dt>
+                    <dd>{{ employee_id }}</dd>
+                </div>
+                <div>
+                    <dt>Employee Name</dt>
+                    <dd>{{ employee_name }}</dd>
+                </div>
+                <div>
+                    <dt>Payroll Month</dt>
+                    <dd>{{ record.salary_month }}</dd>
+                </div>
+            </div>
+
+            <div class="pay-table-grid">
+                <section>
+                    <h3>Earnings</h3>
+                    <table class="pay-table">
+                        <tbody>
+                            <tr>
+                                <th>Basic Salary</th>
+                                <td>&#8377;{{ "{:,.2f}".format(parts.basic) }}</td>
+                            </tr>
+                            <tr>
+                                <th>HRA</th>
+                                <td>&#8377;{{ "{:,.2f}".format(parts.hra) }}</td>
+                            </tr>
+                            <tr>
+                                <th>Allowances</th>
+                                <td>&#8377;{{ "{:,.2f}".format(parts.allowances) }}</td>
+                            </tr>
+                            <tr>
+                                <th>Reimbursements</th>
+                                <td>&#8377;{{ "{:,.2f}".format(parts.reimbursement) }}</td>
+                            </tr>
+                            <tr class="total-row">
+                                <th>Total Earnings</th>
+                                <td>&#8377;{{ "{:,.2f}".format(parts.total_earnings) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <section>
+                    <h3>Deductions</h3>
+                    <table class="pay-table">
+                        <tbody>
+                            <tr>
+                                <th>Deductions</th>
+                                <td>&#8377;{{ "{:,.2f}".format(parts.deductions) }}</td>
+                            </tr>
+                            <tr class="total-row">
+                                <th>Total Deductions</th>
+                                <td>&#8377;{{ "{:,.2f}".format(parts.total_deductions) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+            </div>
+
+            <section class="net-salary-panel">
+                <div>
+                    <p class="muted">Net Salary</p>
+                    <strong>&#8377;{{ "{:,.2f}".format(parts.net_salary) }}</strong>
+                </div>
+                <div>
+                    <p class="muted">Total Earnings</p>
+                    <strong>&#8377;{{ "{:,.2f}".format(parts.total_earnings) }}</strong>
+                </div>
+                <div>
+                    <p class="muted">Total Deductions</p>
+                    <strong>&#8377;{{ "{:,.2f}".format(parts.total_deductions) }}</strong>
+                </div>
+            </section>
+        </section>
+
+        {% if records|length > 1 %}
+        <section class="payslip-history">
+            <h2>Salary History</h2>
+            <table class="pay-table">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Net Salary</th>
+                        <th>Payslip</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in records %}
+                    <tr>
+                        <td>{{ item.salary_month }}</td>
+                        <td>&#8377;{{ "{:,.2f}".format(item.net_salary or 0) }}</td>
+                        <td><a href="/payslip?month={{ item.salary_month|urlencode }}">View</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+        {% endif %}
+        {% endif %}
+    </main>
+</body>
+</html>

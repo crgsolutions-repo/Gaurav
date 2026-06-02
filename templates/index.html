@@ -1,21 +1,82 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <title>HR Chatbot</title>
+    <title>HR Assistant</title>
 </head>
-
 <body>
+    <main class="app-shell">
+        <aside class="sidebar">
+            <div>
+                <p class="eyebrow">Enterprise HR</p>
+                <h1>HR Assistant</h1>
+                <p class="muted">Attendance, leave, approvals, payroll, and company policy support.</p>
+            </div>
 
-    <h1>HR Chatbot</h1>
+            <div class="profile-panel">
+                <span class="avatar">{{ employee.employee_name[0] }}</span>
+                <div>
+                    <strong>{{ employee.employee_name }}</strong>
+                    <p>{{ employee.role|title }}</p>
+                </div>
+            </div>
 
-    <div id="chat-box">
-        <p><b>Bot:</b> Welcome to HR Chatbot</p>
-    </div>
+            <nav class="nav-actions">
+                <a href="/leaves">My Leaves</a>
+                <a href="/payslip">My Payslip</a>
+                {% if employee.role|lower == "manager" %}
+                <div class="approval-nav-wrap">
+                    {% if employee.unseen_leave_approval_count %}
+                    <div class="approval-alert" role="status">New leave approvals may need your review.</div>
+                    {% endif %}
+                    <a class="approval-link" href="/manager/leaves">
+                        Leave Approvals
+                        {% if employee.unseen_leave_approval_count %}
+                        <span class="notification-dot" aria-label="{{ employee.unseen_leave_approval_count }} unread leave approvals"></span>
+                        {% endif %}
+                    </a>
+                    <a class="approval-link" href="/manager/expenses">
+                        Expense Approvals
+                        {% if employee.unseen_expense_approval_count %}
+                        <span class="notification-dot" aria-label="{{ employee.unseen_expense_approval_count }} unread expense approvals"></span>
+                        {% endif %}
+                    </a>
+                </div>
+                {% endif %}
+                <a href="/logout">Logout</a>
+            </nav>
+        </aside>
 
-    <input type="text" id="user-input" placeholder="Type message">
-    
-    <button>Send</button>
+        <section class="chat-panel" aria-label="HR chatbot">
+            <header class="chat-header">
+                <div>
+                    <p class="eyebrow">Live Assistant</p>
+                    <h2>How can I help today?</h2>
+                </div>
+                <span class="status-pill">Secure HR scope</span>
+            </header>
+
+            <div id="chat-box" class="chat-box" aria-live="polite">
+                <div class="message bot">
+                    <span>Bot</span>
+                    <p>Welcome. I can help with attendance, leave requests, leave balances, approvals, payroll, and company policies.</p>
+                </div>
+            </div>
+
+            <form id="chat-form" class="chat-form">
+                <input type="text" id="user-input" autocomplete="off" placeholder="Type an HR request, for example: I need sick leave tomorrow">
+                <input type="date" id="date-input" aria-label="Select date">
+                <label class="file-input-label">
+                    Receipt
+                    <input type="file" id="receipt-input" accept="image/*">
+                </label>
+                <button type="submit">Send</button>
+            </form>
+        </section>
+    </main>
+
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

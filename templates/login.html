@@ -1,28 +1,36 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Login</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Login | HR Assistant</title>
 </head>
-
 <body>
+    <main class="login-shell">
+        <section class="login-panel">
+            <p class="eyebrow">Employee Portal</p>
+            <h1>Sign in to HR Assistant</h1>
+            <p class="muted">Access attendance, leave, approvals, and payroll workflows.</p>
 
-    <h1>Employee Login</h1>
-    {% if error %}
-    <p style="color:red;">{{ error }}</p>
-    {% endif %}
-    <form action="/login" method="POST">
+            {% if error %}
+            <p class="form-error">{{ error }}</p>
+            {% endif %}
 
-    <input type="email" name="email" placeholder="Enter Email">
+            <form action="/login" method="POST" class="login-form">
+                <label>
+                    Email
+                    <input type="email" name="email" placeholder="name@company.com" required>
+                </label>
 
-    <br><br>
+                <label>
+                    Password
+                    <input type="password" name="password" placeholder="Enter password" required>
+                </label>
 
-    <input type="password" name="password" placeholder="Enter Password">
-
-    <br><br>
-
-    <button type="submit">Login</button>
-
-    </form>
-
+                <button type="submit">Login</button>
+            </form>
+        </section>
+    </main>
 </body>
 </html>

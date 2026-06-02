@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Expense Approvals | HR Assistant</title>
+</head>
+<body>
+    <main class="manager-shell">
+        <header class="manager-header">
+            <div>
+                <p class="eyebrow">Manager Workspace</p>
+                <h1>Expense Approvals</h1>
+            </div>
+            <a class="secondary-link" href="/">Back to Chat</a>
+        </header>
+
+        <section class="manager-tools">
+            <nav class="manager-tabs" aria-label="Expense approval views">
+                <a class="tab-link {% if active_view == 'pending' %}active{% endif %}" href="/manager/expenses">
+                    Pending
+                    <span>{{ pending_count }}</span>
+                </a>
+                <a class="tab-link {% if active_view == 'approved' %}active{% endif %}" href="/manager/expenses?view=approved">
+                    Approved
+                    <span>{{ approved_count }}</span>
+                </a>
+                <a class="tab-link {% if active_view == 'rejected' %}active{% endif %}" href="/manager/expenses?view=rejected">
+                    Rejected
+                    <span>{{ rejected_count }}</span>
+                </a>
+            </nav>
+        </section>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <section class="flash-list" aria-live="polite">
+                {% for category, message in messages %}
+                <p class="flash-message {{ category }}">{{ message }}</p>
+                {% endfor %}
+            </section>
+            {% endif %}
+        {% endwith %}
+
+        <section class="approval-list">
+            {% if expenses %}
+                {% for expense in expenses %}
+                <article class="approval-card {% if expense._is_new %}new{% endif %}">
+                    <div>
+                        <p class="eyebrow">Claim #{{ expense.id }}</p>
+                        <h2>{{ expense.expense_type }} &middot; ₹{{ expense.amount_display }}</h2>
+                        <p class="muted">
+                            {{ expense.employee_name }}
+                            {% if expense._is_new %}
+                            <span class="new-tag">New</span>
+                            {% endif %}
+                        </p>
+                    </div>
+
+                    <dl>
+                        <div>
+                            <dt>Description</dt>
+                            <dd>{{ expense.description or "Not provided" }}</dd>
+                        </div>
+                        <div>
+                            <dt>OCR Amount</dt>
+                            <dd>{% if expense.ocr_amount_display %}₹{{ expense.ocr_amount_display }}{% else %}Not required{% endif %}</dd>
+                        </div>
+                        <div>
+                            <dt>Vendor</dt>
+                            <dd>{{ expense.vendor_name or "Not detected" }}</dd>
+                        </div>
+                        <div>
+                            <dt>Invoice</dt>
+                            <dd>{{ expense.invoice_number or "Not required" }}</dd>
+                        </div>
+                        <div>
+                            <dt>Receipt Date</dt>
+                            <dd>{{ expense.bill_date or "Not required" }}</dd>
+                        </div>
+                        <div>
+                            <dt>Status</dt>
+                            <dd>{{ expense.status }}</dd>
+                        </div>
+                    </dl>
+
+                    {% if expense.bill_image %}
+                    <a class="receipt-preview-link" href="/expense-receipts/{{ expense.bill_image }}" target="_blank" rel="noopener">
+                        View receipt preview
+                    </a>
+                    {% endif %}
+
+                    {% if active_view == "pending" %}
+                    <div class="approval-actions">
+                        <form class="approve-form" action="/manager/expenses/{{ expense.id }}/approve" method="POST">
+                            <button type="submit">Approve</button>
+                        </form>
+                        <form class="reject-form" action="/manager/expenses/{{ expense.id }}/reject" method="POST">
+                            <label class="reject-reason">
+                                Rejection reason
+                                <textarea name="reason" rows="2" placeholder="Explain the business or policy reason" required></textarea>
+                            </label>
+                            <button type="submit" class="danger">Reject</button>
+                        </form>
+                    </div>
+                    {% elif expense.status == "Rejected" %}
+                    <section class="rejection-note">
+                        <p class="eyebrow">Rejection Reason</p>
+                        <p>{{ expense.rejection_reason or "No reason provided." }}</p>
+                        {% if expense.rejected_by %}
+                        <p class="muted">Rejected by {{ expense.rejected_by }}</p>
+                        {% endif %}
+                    </section>
+                    {% endif %}
+                </article>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <h2>No {{ active_view }} expense requests</h2>
+                    <p class="muted">Expense reimbursement requests will appear here after employees submit them.</p>
+                </div>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>
