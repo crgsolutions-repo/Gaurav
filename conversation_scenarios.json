@@ -1,0 +1,768 @@
+[
+{
+"name": "leave_interrupt_salary_01",
+"messages": [
+"I need casual leave tomorrow",
+"Show my salary for May",
+"continue",
+"cancel"
+]
+},
+{
+"name": "leave_interrupt_attendance_01",
+"messages": [
+"I need leave tomorrow",
+"Show attendance for June",
+"resume",
+"cancel"
+]
+},
+{
+"name": "leave_cancel_changed_mind",
+"messages": [
+"I need leave tomorrow",
+"I changed my mind"
+]
+},
+{
+"name": "leave_cancel_not_now",
+"messages": [
+"I need leave tomorrow",
+"not now"
+]
+},
+{
+"name": "leave_cancel_maybe_later",
+"messages": [
+"I need leave tomorrow",
+"maybe later"
+]
+},
+{
+"name": "leave_cancel_forget_it",
+"messages": [
+"I need leave tomorrow",
+"forget it"
+]
+},
+{
+"name": "leave_week_request",
+"messages": [
+"I need paternity leave for a week from next Monday"
+]
+},
+{
+"name": "leave_indirect_01",
+"messages": [
+"Won't be coming tomorrow"
+]
+},
+{
+"name": "leave_indirect_02",
+"messages": [
+"Need a day off tomorrow"
+]
+},
+{
+"name": "leave_indirect_03",
+"messages": [
+"Taking tomorrow off"
+]
+},
+{
+"name": "leave_balance_check",
+"messages": [
+"How many leaves do I have"
+]
+},
+{
+"name": "leave_balance_low",
+"messages": [
+"Am I running low on leave balance"
+]
+},
+{
+"name": "leave_recommendation",
+"messages": [
+"Which leave should I use"
+]
+},
+{
+"name": "leave_recommendation_unsure",
+"messages": [
+"I am not sure which leave to use"
+]
+},
+{
+"name": "attendance_month",
+"messages": [
+"Show attendance for May"
+]
+},
+{
+"name": "attendance_specific_date",
+"messages": [
+"Was I present on June 2"
+]
+},
+{
+"name": "attendance_compare",
+"messages": [
+"Compare attendance for May and June"
+]
+},
+{
+"name": "attendance_history",
+"messages": [
+"Show my attendance history"
+]
+},
+{
+"name": "attendance_and_salary",
+"messages": [
+"Show my attendance and salary"
+]
+},
+{
+"name": "payroll_may",
+"messages": [
+"Show my salary for May"
+]
+},
+{
+"name": "payroll_context_april",
+"messages": [
+"Show my salary for May",
+"April"
+]
+},
+{
+"name": "payroll_context_june",
+"messages": [
+"Show my salary for May",
+"June"
+]
+},
+{
+"name": "payroll_compare",
+"messages": [
+"Compare May and June salary"
+]
+},
+{
+"name": "payroll_highest",
+"messages": [
+"Which month had my highest salary"
+]
+},
+{
+"name": "payroll_breakdown",
+"messages": [
+"Show my salary breakdown"
+]
+},
+{
+"name": "payroll_reimbursement_question",
+"messages": [
+"How much reimbursement did I receive this year"
+]
+},
+{
+"name": "summary_monthly",
+"messages": [
+"Monthly summary"
+]
+},
+{
+"name": "summary_hr",
+"messages": [
+"HR summary"
+]
+},
+{
+"name": "summary_dashboard",
+"messages": [
+"Give me my dashboard"
+]
+},
+{
+"name": "summary_total",
+"messages": [
+"Give me a summary for this month"
+]
+}
+]
+
+[
+{
+"name": "expense_basic_travel",
+"messages": [
+"I spent money on travel"
+]
+},
+{
+"name": "expense_basic_food",
+"messages": [
+"I have a food bill to claim"
+]
+},
+{
+"name": "expense_basic_software",
+"messages": [
+"I bought software for work"
+]
+},
+{
+"name": "expense_basic_accommodation",
+"messages": [
+"Need reimbursement for hotel stay"
+]
+},
+{
+"name": "expense_indirect_01",
+"messages": [
+"I paid for a client dinner"
+]
+},
+{
+"name": "expense_indirect_02",
+"messages": [
+"Can company reimburse this expense"
+]
+},
+{
+"name": "expense_advisory_01",
+"messages": [
+"I spent 4000 on a client dinner",
+"Should I claim it"
+]
+},
+{
+"name": "expense_advisory_02",
+"messages": [
+"I spent money on travel",
+"Will my manager approve it"
+]
+},
+{
+"name": "expense_advisory_03",
+"messages": [
+"I bought software for work",
+"Is this reimbursable"
+]
+},
+{
+"name": "expense_advisory_04",
+"messages": [
+"I have a food bill",
+"Is it worth claiming"
+]
+},
+{
+"name": "expense_history_latest",
+"messages": [
+"Show my latest reimbursement"
+]
+},
+{
+"name": "expense_history_pending",
+"messages": [
+"Show pending reimbursements"
+]
+},
+{
+"name": "expense_history_approved",
+"messages": [
+"Show approved reimbursements"
+]
+},
+{
+"name": "expense_category_usage",
+"messages": [
+"What reimbursement category do I use most"
+]
+},
+{
+"name": "expense_compare_months",
+"messages": [
+"Compare reimbursements for May and June"
+]
+},
+{
+"name": "expense_workflow_salary_switch",
+"messages": [
+"I have an expense to claim",
+"Show my salary",
+"continue",
+"cancel"
+]
+},
+{
+"name": "expense_workflow_attendance_switch",
+"messages": [
+"I want reimbursement",
+"Show attendance for May",
+"resume",
+"cancel"
+]
+},
+{
+"name": "expense_workflow_leave_switch",
+"messages": [
+"I need reimbursement",
+"I need leave tomorrow",
+"switch"
+]
+},
+{
+"name": "expense_workflow_cancel",
+"messages": [
+"I have a bill to claim",
+"never mind"
+]
+},
+{
+"name": "expense_workflow_cancel_02",
+"messages": [
+"I have a bill to claim",
+"leave it"
+]
+},
+{
+"name": "request_history_all",
+"messages": [
+"Show all my requests"
+]
+},
+{
+"name": "request_history_pending",
+"messages": [
+"Show my pending requests"
+]
+},
+{
+"name": "request_history_leave",
+"messages": [
+"Show my leave requests"
+]
+},
+{
+"name": "request_history_expense",
+"messages": [
+"Show my expense requests"
+]
+},
+{
+"name": "request_history_latest_leave",
+"messages": [
+"What was my last leave request"
+]
+},
+{
+"name": "request_history_latest_expense",
+"messages": [
+"What was my last expense claim"
+]
+},
+{
+"name": "multi_question_leave_expense",
+"messages": [
+"How do I apply leave and how does reimbursement work"
+]
+},
+{
+"name": "multi_question_attendance_salary",
+"messages": [
+"Show my attendance and salary"
+]
+},
+{
+"name": "multi_question_balance_requests",
+"messages": [
+"Show leave balance and pending requests"
+]
+},
+{
+"name": "multi_question_payroll_expense",
+"messages": [
+"Show salary and reimbursement history"
+]
+},
+{
+"name": "workflow_switch_leave_to_payroll",
+"messages": [
+"I need leave tomorrow",
+"Show payroll",
+"continue",
+"cancel"
+]
+},
+{
+"name": "workflow_switch_leave_to_attendance",
+"messages": [
+"I need leave tomorrow",
+"Show attendance",
+"resume",
+"cancel"
+]
+},
+{
+"name": "workflow_switch_leave_to_expense",
+"messages": [
+"I need leave tomorrow",
+"I need reimbursement"
+]
+},
+{
+"name": "workflow_switch_expense_to_leave",
+"messages": [
+"I need reimbursement",
+"I need leave tomorrow"
+]
+},
+{
+"name": "workflow_switch_payroll_to_leave",
+"messages": [
+"Show my salary",
+"I need leave tomorrow"
+]
+},
+{
+"name": "context_question_after_salary",
+"messages": [
+"Show my salary for May",
+"What about April"
+]
+},
+{
+"name": "context_question_after_attendance",
+"messages": [
+"Show attendance for May",
+"What about June"
+]
+},
+{
+"name": "context_question_after_reimbursement",
+"messages": [
+"Show my reimbursements for May",
+"What about June"
+]
+},
+{
+"name": "context_compare_after_salary",
+"messages": [
+"Show my salary for May",
+"Compare with June"
+]
+},
+{
+"name": "context_compare_after_attendance",
+"messages": [
+"Show attendance for May",
+"Compare with June"
+]
+}
+]
+
+[
+{
+"name": "copilot_paternity_01",
+"messages": [
+"My wife is due next month"
+]
+},
+{
+"name": "copilot_paternity_02",
+"messages": [
+"My baby is expected next month"
+]
+},
+{
+"name": "copilot_paternity_03",
+"messages": [
+"We are expecting a child soon"
+]
+},
+{
+"name": "copilot_childbirth_01",
+"messages": [
+"My child was born yesterday"
+]
+},
+{
+"name": "copilot_childbirth_02",
+"messages": [
+"Just became a father"
+]
+},
+{
+"name": "copilot_marriage_01",
+"messages": [
+"I am getting married next month"
+]
+},
+{
+"name": "copilot_marriage_02",
+"messages": [
+"My wedding is coming up"
+]
+},
+{
+"name": "copilot_marriage_03",
+"messages": [
+"Need leave for my marriage"
+]
+},
+{
+"name": "copilot_bereavement_01",
+"messages": [
+"My father passed away"
+]
+},
+{
+"name": "copilot_bereavement_02",
+"messages": [
+"Lost a close family member"
+]
+},
+{
+"name": "copilot_bereavement_03",
+"messages": [
+"There was a death in my family"
+]
+},
+{
+"name": "copilot_medical_01",
+"messages": [
+"I need time off for surgery"
+]
+},
+{
+"name": "copilot_medical_02",
+"messages": [
+"I have a medical procedure next week"
+]
+},
+{
+"name": "copilot_medical_03",
+"messages": [
+"Doctor advised me to take rest"
+]
+},
+{
+"name": "copilot_relocation_01",
+"messages": [
+"I am relocating next month"
+]
+},
+{
+"name": "copilot_relocation_02",
+"messages": [
+"Moving to another city soon"
+]
+},
+{
+"name": "copilot_travel_01",
+"messages": [
+"I am travelling for a client meeting"
+]
+},
+{
+"name": "copilot_travel_02",
+"messages": [
+"Need to travel for work next week"
+]
+},
+{
+"name": "copilot_travel_03",
+"messages": [
+"Going on a business trip"
+]
+},
+{
+"name": "copilot_punchout_01",
+"messages": [
+"I forgot to punch out yesterday"
+]
+},
+{
+"name": "copilot_punchout_02",
+"messages": [
+"Forgot checkout yesterday"
+]
+},
+{
+"name": "copilot_punchout_03",
+"messages": [
+"Attendance seems incomplete"
+]
+},
+{
+"name": "recommend_leave_01",
+"messages": [
+"Which leave should I use"
+]
+},
+{
+"name": "recommend_leave_02",
+"messages": [
+"What is the best leave option for me"
+]
+},
+{
+"name": "recommend_leave_03",
+"messages": [
+"I am not sure which leave to apply"
+]
+},
+{
+"name": "recommend_leave_04",
+"messages": [
+"Recommend a leave type"
+]
+},
+{
+"name": "recommend_balance_01",
+"messages": [
+"Am I running low on leave balance"
+]
+},
+{
+"name": "recommend_balance_02",
+"messages": [
+"Which leave balance should I save"
+]
+},
+{
+"name": "recommend_reimbursement_01",
+"messages": [
+"What reimbursement category do I use most"
+]
+},
+{
+"name": "recommend_reimbursement_02",
+"messages": [
+"What kind of expenses do I usually claim"
+]
+},
+{
+"name": "recommend_salary_01",
+"messages": [
+"Which month had my highest salary"
+]
+},
+{
+"name": "recommend_salary_02",
+"messages": [
+"When did I earn the most"
+]
+},
+{
+"name": "recommend_general_01",
+"messages": [
+"What would you recommend"
+]
+},
+{
+"name": "recommend_general_02",
+"messages": [
+"Any suggestions for me"
+]
+},
+{
+"name": "recommend_general_03",
+"messages": [
+"What should I do"
+]
+},
+{
+"name": "natural_question_01",
+"messages": [
+"Should I even claim this expense"
+]
+},
+{
+"name": "natural_question_02",
+"messages": [
+"Will my manager approve this"
+]
+},
+{
+"name": "natural_question_03",
+"messages": [
+"Is this reimbursable"
+]
+},
+{
+"name": "natural_question_04",
+"messages": [
+"Is it worth applying for leave"
+]
+},
+{
+"name": "policy_question_01",
+"messages": [
+"Explain paternity leave policy"
+]
+},
+{
+"name": "policy_question_02",
+"messages": [
+"What is the reimbursement process"
+]
+},
+{
+"name": "policy_question_03",
+"messages": [
+"How do leave approvals work"
+]
+},
+{
+"name": "policy_question_04",
+"messages": [
+"How does payroll work"
+]
+},
+{
+"name": "typo_leave_01",
+"messages": [
+"i need lev tommorow"
+]
+},
+{
+"name": "typo_leave_02",
+"messages": [
+"need holliday nxt week"
+]
+},
+{
+"name": "typo_payroll_01",
+"messages": [
+"show salry for may"
+]
+},
+{
+"name": "typo_attendance_01",
+"messages": [
+"show attandance history"
+]
+},
+{
+"name": "ambiguous_01",
+"messages": [
+"I need help"
+]
+},
+{
+"name": "ambiguous_02",
+"messages": [
+"Not sure what to do"
+]
+},
+{
+"name": "ambiguous_03",
+"messages": [
+"Can you guide me"
+]
+}
+]

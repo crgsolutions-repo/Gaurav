@@ -23,6 +23,15 @@ DATE_RANGE_PATTERN = re.compile(
     rf"\b(?:from\s+)?(?P<start>{DATE_EXPRESSION})\s+(?:to|till|until|through)\s+(?P<end>{DATE_EXPRESSION})\b",
     re.IGNORECASE,
 )
+WEEKDAY_NAMES = {
+    "monday": 0,
+    "tuesday": 1,
+    "wednesday": 2,
+    "thursday": 3,
+    "friday": 4,
+    "saturday": 5,
+    "sunday": 6,
+}
 
 
 def json_reply(reply, status=200, **extra):
@@ -93,6 +102,24 @@ def parse_hr_date(value):
         return None
 
 
+def infer_relative_weekday(message):
+    lowered = str(message or "").lower()
+    match = re.search(
+        r"\b(?:(next|coming|this)\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b",
+        lowered,
+    )
+    if not match:
+        return None
+
+    modifier = match.group(1) or ""
+    target_weekday = WEEKDAY_NAMES[match.group(2)]
+    today = date.today()
+    days_ahead = (target_weekday - today.weekday()) % 7
+    if modifier == "next" or days_ahead == 0:
+        days_ahead = days_ahead or 7
+    return today + timedelta(days=days_ahead)
+
+
 def infer_date_from_message(message):
     lowered = str(message or "").lower()
     words = set(re.findall(r"[a-z]+", lowered))
@@ -103,6 +130,10 @@ def infer_date_from_message(message):
         return date.today() + timedelta(days=2)
     if words & TOMORROW_WORDS:
         return date.today() + timedelta(days=1)
+
+    relative_weekday = infer_relative_weekday(lowered)
+    if relative_weekday:
+        return relative_weekday
 
     date_match = re.search(r"\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b", lowered)
     if date_match:
@@ -124,11 +155,19 @@ def infer_date_range_from_message(message):
 
 
 def infer_requested_days(message):
-    match = re.search(r"\b(\d+)\s+(?:working\s+)?days?\b", str(message or "").lower())
+    lowered = str(message or "").lower()
+    if re.search(r"\b(?:at\s+least\s+)?(?:a|one)\s+week\b", lowered) or re.search(r"\bweek\s+of\b", lowered):
+        return 7
+    if re.search(r"\b(?:two|2)\s+weeks?\b", lowered):
+        return 14
+
+    match = re.search(r"\b(\d+)\s+(?:working\s+)?(?:days?|weeks?)\b", lowered)
     if not match:
         return None
 
     requested_days = int(match.group(1))
+    if "week" in match.group(0):
+        requested_days *= 7
     return requested_days if requested_days > 0 else None
 
 
@@ -474,11 +513,11 @@ def next_leave_step(payload):
 
 def leave_step_prompt(step):
     prompts = {
-        "leave_type": "Which leave type would you like to apply for?",
-        "from_date": "For which date or date range should I apply the leave?",
+        "leave_type": "I can help prepare a leave request and check your available balance before it goes to your manager. Which leave type would you like to apply for?",
+        "from_date": "I can help prepare that leave request. For which date or date range should I apply the leave?",
         "to_date": "What is the leave end date?",
-        "duration": "Is this a Full Day or Half Day leave?",
-        "reason": "Please provide a short reason for this leave request.",
+        "duration": "Got it. Should this be a Full Day or Half Day leave?",
+        "reason": "Please share a short reason for this leave request so your manager has the right context.",
     }
     return prompts.get(step, "Please confirm if you want me to submit this leave request.")
 

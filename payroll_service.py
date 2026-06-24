@@ -62,6 +62,34 @@ def extract_salary_month(message):
     return None
 
 
+def extract_salary_months(message):
+    text = str(message or "")
+    month_names = (
+        "january",
+        "february",
+        "march",
+        "april",
+        "may",
+        "june",
+        "july",
+        "august",
+        "september",
+        "october",
+        "november",
+        "december",
+    )
+    seen = []
+    for match in re.finditer("|".join(month_names), text, re.IGNORECASE):
+        month = f"{match.group(0).title()} {date.today().year}"
+        if month not in seen:
+            seen.append(month)
+    for match in re.finditer(r"\b(20\d{2})[-/](0?[1-9]|1[0-2])\b", text):
+        month = f"{match.group(1)}-{int(match.group(2)):02d}"
+        if month not in seen:
+            seen.append(month)
+    return seen
+
+
 def normalize_payroll_text(message):
     lowered = str(message or "").lower()
     return re.sub(r"\breimbur\w*\b", "reimbursement", lowered)
@@ -71,6 +99,22 @@ def payslip_links(record):
     month = str(record.get("salary_month") or "")
     encoded_month = quote(month)
     return f"/payslip?month={encoded_month}", f"/payslip/download?month={encoded_month}"
+
+
+def contextual_suggestions(topic):
+    if topic == "reimbursement":
+        return (
+            "\n\nWould you like to:\n"
+            "- Submit a claim\n"
+            "- View claims\n"
+            "- Check reimbursement status"
+        )
+    return (
+        "\n\nWould you like to:\n"
+        "- View payslip\n"
+        "- Compare another month\n"
+        "- View salary history"
+    )
 
 
 def get_employee_salary_records(employee_id):
@@ -228,33 +272,49 @@ def handle_payroll_query(employee_id, employee_name, message):
 
     parts = payslip_parts(record)
     if "compare" in lowered or "change" in lowered or "last month" in lowered:
-        records = get_employee_salary_records(employee_id)
+        compare_reimbursement = "reimbursement" in lowered and "salary" not in lowered
+        requested_months = extract_salary_months(message)
+        named_comparison = len(requested_months) >= 2
+        if named_comparison:
+            records = [get_salary_record(employee_id, requested_months[0]), get_salary_record(employee_id, requested_months[1])]
+            if not all(records):
+                return jsonify({"reply": "I could not find payroll records for both requested months."}), 200
+        else:
+            records = get_employee_salary_records(employee_id)[:2]
         if len(records) < 2:
             return jsonify({"reply": "I need at least two payroll records to compare salary months."}), 200
-        current = payslip_parts(records[0])
-        previous = payslip_parts(records[1])
-        difference = current["net_salary"] - previous["net_salary"]
+        first = payslip_parts(records[0])
+        second = payslip_parts(records[1])
+        value_key = "reimbursement" if compare_reimbursement else "net_salary"
+        value_label = "reimbursement" if compare_reimbursement else "salary"
+        difference = (second[value_key] - first[value_key]) if named_comparison else (first[value_key] - second[value_key])
         direction = "increase" if difference >= 0 else "decrease"
         reasons = []
-        for label, key in (
-            ("Reimbursement", "reimbursement"),
-            ("Deductions", "deductions"),
-            ("Allowances", "allowances"),
-            ("HRA", "hra"),
-            ("Basic salary", "basic"),
-        ):
-            delta = current[key] - previous[key]
+        if compare_reimbursement:
+            delta = (second["reimbursement"] - first["reimbursement"]) if named_comparison else (first["reimbursement"] - second["reimbursement"])
             if abs(delta) >= 0.01:
-                reasons.append(f"{label}: INR {money(abs(delta))} {'higher' if delta > 0 else 'lower'}")
+                reasons.append(f"Reimbursement changed from INR {money(first['reimbursement'])} to INR {money(second['reimbursement'])}.")
+        else:
+            for label, key in (
+                ("Reimbursement", "reimbursement"),
+                ("Deductions", "deductions"),
+                ("Allowances", "allowances"),
+                ("HRA", "hra"),
+                ("Basic salary", "basic"),
+            ):
+                delta = (second[key] - first[key]) if named_comparison else (first[key] - second[key])
+                if abs(delta) >= 0.01:
+                    reasons.append(f"{label}: INR {money(abs(delta))} {'higher' if delta > 0 else 'lower'}")
         if not reasons:
             reasons.append("No component-level change was found.")
         reply = (
-            f"{employee_name}, salary comparison:\n"
-            f"Previous Month ({month_display(records[1].get('salary_month'))}): INR {money(previous['net_salary'])}\n"
-            f"Current Month ({month_display(records[0].get('salary_month'))}): INR {money(current['net_salary'])}\n"
+            f"{employee_name}, {value_label} comparison:\n"
+            f"{month_display(records[0].get('salary_month'))}: INR {money(first[value_key])}\n"
+            f"{month_display(records[1].get('salary_month'))}: INR {money(second[value_key])}\n"
             f"Difference: INR {money(abs(difference))} {direction}\n\n"
             "Reason:\n"
             + "\n".join(reasons)
+            + contextual_suggestions("reimbursement" if compare_reimbursement else "salary")
         )
         return jsonify({"reply": reply}), 200
 
@@ -273,27 +333,27 @@ def handle_payroll_query(employee_id, employee_name, message):
         for row in records:
             row_parts = payslip_parts(row)
             lines.append(f"{month_display(row.get('salary_month'))}: INR {money(row_parts['net_salary'])}")
-        return jsonify({"reply": "\n".join(lines)}), 200
+        return jsonify({"reply": "\n".join(lines) + contextual_suggestions("salary")}), 200
 
     if "highest" in lowered:
         records = get_employee_salary_records(employee_id)
         if "reimbursement" in lowered:
             highest = max(records, key=lambda row: payslip_parts(row)["reimbursement"])
             highest_parts = payslip_parts(highest)
-            return jsonify({"reply": f"Your highest reimbursement was INR {money(highest_parts['reimbursement'])} in {month_display(highest.get('salary_month'))}."}), 200
+            return jsonify({"reply": f"Your highest reimbursement was INR {money(highest_parts['reimbursement'])} in {month_display(highest.get('salary_month'))}." + contextual_suggestions("reimbursement")}), 200
         highest = max(records, key=lambda row: payslip_parts(row)["net_salary"])
         highest_parts = payslip_parts(highest)
-        return jsonify({"reply": f"Your highest net salary was INR {money(highest_parts['net_salary'])} in {month_display(highest.get('salary_month'))}."}), 200
+        return jsonify({"reply": f"Your highest net salary was INR {money(highest_parts['net_salary'])} in {month_display(highest.get('salary_month'))}." + contextual_suggestions("salary")}), 200
 
     if "lowest" in lowered:
         records = get_employee_salary_records(employee_id)
         if "reimbursement" in lowered:
             lowest = min(records, key=lambda row: payslip_parts(row)["reimbursement"])
             lowest_parts = payslip_parts(lowest)
-            return jsonify({"reply": f"Your lowest reimbursement was INR {money(lowest_parts['reimbursement'])} in {month_display(lowest.get('salary_month'))}."}), 200
+            return jsonify({"reply": f"Your lowest reimbursement was INR {money(lowest_parts['reimbursement'])} in {month_display(lowest.get('salary_month'))}." + contextual_suggestions("reimbursement")}), 200
         lowest = min(records, key=lambda row: payslip_parts(row)["net_salary"])
         lowest_parts = payslip_parts(lowest)
-        return jsonify({"reply": f"Your lowest net salary was INR {money(lowest_parts['net_salary'])} in {month_display(lowest.get('salary_month'))}."}), 200
+        return jsonify({"reply": f"Your lowest net salary was INR {money(lowest_parts['net_salary'])} in {month_display(lowest.get('salary_month'))}." + contextual_suggestions("salary")}), 200
 
     if "reimbursement" in lowered and ("year" in lowered or "total" in lowered):
         current_year = date.today().year
@@ -302,7 +362,7 @@ def handle_payroll_query(employee_id, employee_name, message):
             for row in get_employee_salary_records(employee_id)
             if salary_month_date(row.get("salary_month")).year == current_year
         )
-        return jsonify({"reply": f"{employee_name}, total reimbursements in {current_year} are INR {money(total)}."}), 200
+        return jsonify({"reply": f"{employee_name}, total reimbursements in {current_year} are INR {money(total)}." + contextual_suggestions("reimbursement")}), 200
 
     if "deduction" in lowered:
         reply = f"{employee_name}, deductions for {month_display(record.get('salary_month'))} were INR {money(parts['deductions'])}."
@@ -328,7 +388,8 @@ def handle_payroll_query(employee_id, employee_name, message):
             f"Net Salary: INR {money(parts['net_salary'])}"
         )
 
-    return jsonify({"reply": reply}), 200
+    suggestion_topic = "reimbursement" if "reimbursement" in lowered else "salary"
+    return jsonify({"reply": reply + contextual_suggestions(suggestion_topic)}), 200
 
 
 def is_payroll_message(message):
@@ -342,6 +403,9 @@ def is_payroll_message(message):
         "payroll",
         "payslip",
         "net salary",
+        "net pay",
+        "earnings",
+        "salary breakdown",
         "deduction",
         "hra",
         "salary history",
@@ -350,6 +414,30 @@ def is_payroll_message(message):
     )
     reimbursement_query = (
         "reimbursement" in lowered
-        and any(keyword in lowered for keyword in ("salary", "payroll", "payslip", "received", "added", "year", "month", "total"))
+        and any(keyword in lowered for keyword in ("salary", "payroll", "payslip", "received", "added", "year", "month", "total", "compare"))
     )
-    return any(keyword in lowered for keyword in keywords) or reimbursement_query
+    generic_month_comparison = "compare" in lowered and "month" in lowered and "attendance" not in lowered
+    return any(keyword in lowered for keyword in keywords) or reimbursement_query or generic_month_comparison
+
+
+def is_payroll_followup(message):
+    lowered = normalize_payroll_text(message)
+    month_names = (
+        "january",
+        "february",
+        "march",
+        "april",
+        "may",
+        "june",
+        "july",
+        "august",
+        "september",
+        "october",
+        "november",
+        "december",
+    )
+    month_pattern = "|".join(month_names)
+    return re.search(
+        rf"^\s*(?:what\s+about\s+|how\s+about\s+|and\s+)?(?:for\s+)?(?:the\s+month\s+of\s+)?({month_pattern})(?:\s+month)?\??\s*$",
+        lowered,
+    ) is not None

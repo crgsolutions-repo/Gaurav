@@ -95,6 +95,11 @@ def enrich_employee_names(expenses):
             row["amount_display"] = money(row["amount"])
         if row.get("ocr_amount") is not None:
             row["ocr_amount_display"] = money(row["ocr_amount"])
+        row["_amount_not_validated"] = (
+            row.get("amount") is not None
+            and row.get("ocr_amount") is not None
+            and abs(float(row.get("amount") or 0) - float(row.get("ocr_amount") or 0)) > 0.01
+        )
         enriched.append(row)
     return enriched
 

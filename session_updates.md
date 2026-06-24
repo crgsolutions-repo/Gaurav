@@ -948,3 +948,458 @@ Improved payroll chatbot behavior so payslip, salary history, salary comparison,
 ## Known Issues
 
 * JavaScript syntax was manually checked by review; local `node.exe --check` is blocked by the Windows app execution policy in this environment.
+
+---
+
+# Session Update - Leave, Payroll Follow-up, and OCR Review Fixes
+
+## Session Summary
+
+Fixed reported workflow issues around week-long leave requests, month-only payroll follow-ups, OCR amount extraction, and expense amount mismatch handling.
+
+## Files Modified
+
+* `app.py`
+* `expense_service.py`
+* `intent_handlers.py`
+* `manager_expenses.py`
+* `ocr_service.py`
+* `payroll_service.py`
+* `requirements.txt`
+* `static/style.css`
+* `templates/manager_expenses.html`
+* `tests/test_core.py`
+* `session_updates.md`
+
+## Bugs Fixed
+
+* Leave requests now understand phrases such as `a week`, `at least a week`, and `from next monday`.
+* Week-long leave updates now work while the bot is waiting for Full Day/Half Day.
+* Payroll follow-ups such as `for april` now reuse the last payroll context instead of falling back to general HR clarification.
+* OCR amount extraction now prefers `Grand Total`, then payable/total labels, then the last detected amount instead of the largest random number.
+* Employee-corrected receipt amounts such as `amount is 3150 total` are preserved instead of being overwritten by OCR.
+
+## Features Added
+
+* Receipt OCR now preprocesses images with grayscale, contrast enhancement, sharpening, and thresholding before Tesseract when Pillow is available.
+* OCR amount mismatches now create Pending manager-review claims instead of immediate rejection.
+* Manager expense dashboard now flags mismatched OCR/claimed amounts with an `Amount not validated` tag and validation note.
+
+## Schema Changes
+
+* None. The manager-review tag is derived from existing `amount` and `ocr_amount` fields.
+
+## Dependency Changes
+
+* Added `Pillow==12.2.0` for OCR preprocessing.
+
+## Verification
+
+* `venv\Scripts\python.exe -m pip install Pillow` completed successfully.
+* `venv\Scripts\python.exe -m unittest discover -s tests` passed with 45 tests.
+* `venv\Scripts\python.exe -m py_compile app.py intent_handlers.py expense_service.py ocr_service.py payroll_service.py manager_expenses.py tests\test_core.py` passed.
+
+## Known Issues
+
+* OCR still has no geometric bottom-right coordinate analysis; fallback uses the last detected amount in OCR text when no total labels exist.
+
+---
+
+# Session Update - Advisory Assistant Layer and HR History
+
+## Session Summary
+
+Added a deterministic advisory layer so the chatbot can explain capabilities, guide processes, fetch employee history, answer attendance questions, retain payroll context, and provide HR summaries/recommendations before falling back to Gemini.
+
+## Files Modified
+
+* `app.py`
+* `assistant_service.py`
+* `payroll_service.py`
+* `tests/test_core.py`
+* `session_updates.md`
+
+## Features Added
+
+* Help/discovery responses for `help`, `what can you do`, and related feature questions.
+* Process guidance for leave, reimbursement, payslip, and attendance questions without starting workflows.
+* Employee leave request and expense claim history, including pending/approved/rejected filters.
+* Consistent leave balance handling for natural variants such as `How many leaves do I have?`.
+* Attendance history and date-specific attendance checks that also consider approved leave records.
+* Smart `OK` follow-up suggestions based on the last HR topic.
+* HR summary response combining attendance, leave balances, requests, expenses, and latest payroll.
+* Initial recommendation responses for marriage leave, paternity context, travel reimbursement, leave choice, low leave balance, leave usage, and payroll insights.
+* Payroll follow-up detection now handles `What about April?`.
+
+## Architecture Notes
+
+* Added `assistant_service.py` as a deterministic advisory/router layer in front of Gemini.
+* Existing apply/confirm workflows remain in their current services.
+* No database schema changes were required.
+* Future RAG integration can plug into the policy/guidance path without changing transactional workflows.
+
+## Verification
+
+* `venv\Scripts\python.exe -m unittest discover -s tests` passed with 52 tests.
+* `venv\Scripts\python.exe -m py_compile app.py assistant_service.py intent_handlers.py expense_service.py ocr_service.py payroll_service.py manager_expenses.py tests\test_core.py` passed.
+* Flask test client smoke-checked `help`, reimbursement guidance, pending leave request history, and HR summary through `/chat`.
+
+## Known Issues
+
+* Policy answers are still template-based; no RAG/document retrieval is implemented yet.
+* Attendance history uses available attendance and approved leave records only; holiday calendars and scheduled shift rosters are not yet modeled.
+
+---
+
+# Session Update - Workflow Context Isolation and HR Retrieval Fixes
+
+## Session Summary
+
+Fixed workflow-state contamination by routing deterministic advisory, history, attendance, and payroll retrieval requests before active leave/expense workflow continuation. Added explicit workflow resume prompts after unrelated answers and direct resume support through `continue`.
+
+## Files Modified
+
+* `app.py`
+* `assistant_service.py`
+* `payroll_service.py`
+* `tests/test_core.py`
+* `session_updates.md`
+
+## Bugs Fixed
+
+* Active leave/expense workflows no longer intercept unrelated salary, attendance, balance, summary, or history requests.
+* After answering an unrelated request during a workflow, the bot now asks whether to continue the active leave or expense request.
+* `continue`/`resume` now re-prompts the current workflow step instead of being treated as workflow content.
+* Payroll follow-ups and named comparisons now support requests such as `What about April?` and `Compare May and June`.
+* Attendance month queries now return month summaries for named/current/previous month requests instead of single-day results.
+* Retrieval requests such as last approved leave now answer directly without starting a confirmation flow.
+* Summary/dashboard phrases now return a consolidated HR summary with attendance, balances, requests, expenses, payroll, and recent activity.
+
+## Schema Changes
+
+* None.
+
+## Verification
+
+* `venv\Scripts\python.exe -m unittest discover -s tests` passed with 59 tests.
+* `venv\Scripts\python.exe -m py_compile app.py assistant_service.py payroll_service.py tests\test_core.py` passed.
+
+## Known Issues
+
+* The Gemini SDK emits a deprecation warning for `google.generativeai`; migration to `google.genai` remains future technical debt.
+
+---
+
+# Session Update - Conversation Quality and Workflow Intelligence
+
+## Session Summary
+
+Improved chatbot conversation handling so active workflows no longer behave like rigid forms. Added global cancellation, explicit workflow resume, workflow switch prompts, multi-question guidance, direct retrievals, attendance comparison, reimbursement comparison, and more contextual follow-up suggestions.
+
+## Files Modified
+
+* `app.py`
+* `assistant_service.py`
+* `payroll_service.py`
+* `intent_handlers.py`
+* `expense_service.py`
+* `tests/test_core.py`
+* `session_updates.md`
+
+## Bugs Fixed
+
+* Broad cancellation phrases such as `never mind`, `leave it`, `nothing else thanks`, and `no thanks` now cancel active workflows.
+* Old workflows resume only on explicit resume phrases such as `continue` or `continue leave request`.
+* Retrieval requests during active workflows now answer first and offer to resume the old workflow.
+* New workflow intents during an active workflow now ask whether to switch or continue instead of silently hijacking the message.
+* Multi-question process guidance now answers multiple HR topics in one response.
+
+## Features Added
+
+* Indirect leave/expense starts such as `I won't be coming tomorrow` and `I spent money on travel` route to the right workflow with conversational context.
+* Latest attendance record, latest reimbursement, latest payslip, and most recent request retrievals are direct answers.
+* Attendance comparison between two months.
+* Reimbursement comparison between salary months.
+* Contextual suggestions after payroll, attendance, leave history, and reimbursement replies.
+* More natural leave and reimbursement workflow prompts.
+
+## Schema Changes
+
+* None.
+
+## Verification
+
+* `venv\Scripts\python.exe -m unittest discover -s tests` passed with 69 tests.
+* `venv\Scripts\python.exe -m py_compile app.py assistant_service.py payroll_service.py intent_handlers.py expense_service.py tests\test_core.py` passed.
+
+## Known Issues
+
+* Workflow switch confirmation stores the original text in the Flask session; uploaded receipt files attached during the switch prompt itself are not carried into the later `switch` reply.
+* The Gemini SDK deprecation warning remains.
+
+---
+
+# Session Update - Conversation Quality Phase 2 and HR Copilot Intelligence
+
+## Session Summary
+
+Completed the second conversation-quality pass and added HR Copilot intelligence. The assistant now handles broader semantic cancellation, distinguishes advisory questions from workflow inputs, answers multi-topic requests, prioritizes comparisons and retrievals over workflows, and recognizes common life events with personalized recommendations.
+
+## Files Modified
+
+* `app.py`
+* `assistant_service.py`
+* `payroll_service.py`
+* `intent_handlers.py`
+* `expense_service.py`
+* `tests/test_core.py`
+* `session_updates.md`
+
+## Conversation Quality Fixes
+
+* Expanded cancellation recognition for phrases such as `I changed my mind`, `not now`, `maybe later`, `never mind that`, `ignore that`, `no leave`, `no reimbursement`, and `thanks, I'm good`.
+* Added advice handling during active workflows so questions like `Should I even claim this?` are answered instead of being treated as workflow fields.
+* Added multi-topic answers for requests such as attendance plus salary, leave balance plus pending requests, and combined process explanations.
+* Ensured comparison intents such as salary, attendance, and reimbursement comparisons are treated as retrieval/comparison requests, not workflow starts.
+* Added session cleanup for pending workflow-switch state after confirm/cancel paths.
+* Added word-boundary medical detection to prevent phrases like `will my manager approve it` from being misclassified as medical/illness events.
+
+## HR Copilot Features Added
+
+* Life-event recognition for paternity, childbirth, marriage, bereavement, medical time off, vacation planning, relocation ambiguity, and forgotten punch-out situations.
+* Situation-based guidance for client/work travel reimbursements and attendance correction next steps.
+* Personalized recommendation helpers using leave balances, approved leave history, reimbursement history, attendance records, and payroll records.
+* Recommendation responses for best leave option, low leave balances, most used reimbursement category, most used leave type, highest salary, and reimbursement trends.
+* HR Summary now includes insights such as low leave balance, most common reimbursement category, and salary changes related to reimbursements.
+* Added safe low-confidence clarification when the user asks for a recommendation without enough context.
+
+## Tests Added
+
+* Semantic cancellation variation coverage.
+* Advisory question during active expense workflow.
+* Multi-question attendance plus salary retrieval.
+* Multi-question leave balance plus pending requests retrieval.
+* Comparison intent during active leave workflow.
+* Paternity, bereavement, forgotten punch-out, reimbursement-history recommendation, and HR summary insight tests.
+* Adversarial classifier coverage for leave, reimbursement, payroll, and request-history utterance variations.
+
+## Schema Changes
+
+* None.
+
+## Verification
+
+* `venv\Scripts\python.exe -m unittest discover -s tests` passed with 80 tests.
+* `venv\Scripts\python.exe -m py_compile app.py assistant_service.py payroll_service.py intent_handlers.py expense_service.py tests\test_core.py` passed.
+* Additional generated conversational stress pass covered 101 cancellation, workflow-start, retrieval, comparison, advisory, and life-event scenarios.
+
+## Remaining Known Limitations
+
+* Attendance correction is advisory only; there is still no dedicated attendance correction workflow/table.
+* HR policy text remains template-based rather than RAG-backed.
+* Low-confidence life situations ask clarification instead of making a recommendation.
+* Uploaded receipt files attached during a workflow-switch prompt are still not carried into the later `switch` confirmation.
+* The Gemini SDK deprecation warning remains; future migration to `google.genai` is recommended.
+
+## Recommended Next Phase
+
+* Add a formal attendance correction workflow.
+* Add policy/RAG retrieval for paternity, marriage, bereavement, reimbursement, and attendance correction policies.
+* Add richer manager/HR dashboards for recommendations and flagged employee support needs.
+
+---
+
+# Session Update - Reusable Conversational QA Framework
+
+## Session Summary
+
+Created a standalone, rate-limited conversational QA framework using `conversation_scenarios.json` as the only scenario source. The runner supports isolated in-process Flask execution and HTTP execution against a dedicated QA deployment, validates common conversation failures, and writes JSON, CSV, and text reports.
+
+## Files Modified
+
+* `stress_test.py`
+* `assistant_service.py`
+* `tests/test_core.py`
+* `README.md`
+* `session_updates.md`
+* `test_results/results.json`
+* `test_results/results.csv`
+* `test_results/summary_report.txt`
+
+## QA Framework Added
+
+* Supports `--count 25`, `--count 50`, `--count 100`, and `--count all`.
+* Defaults to a 10-second delay and enforces a minimum six-second interval so execution never exceeds 10 requests per minute.
+* Loads all scenarios from the existing dataset, including its concatenated top-level JSON arrays.
+* Executes messages sequentially with conversation state preserved inside each scenario and reset between scenarios.
+* Uses an isolated in-memory datastore by default to avoid changing Supabase test or production data.
+* Supports optional HTTP testing with `--transport http`.
+* Records scenario name, turn, user message, bot response, timestamp, status, pass/fail, notes, failure categories, and suspicious-response status.
+* Detects workflow contamination, resume issues, cancellation failures, recommendation failures, copilot failures, unanswered questions, context-switching failures, and comparison failures.
+
+## Scenarios Executed
+
+* Final run: 50 scenarios.
+* Final requests executed: 76.
+* Passed: 76.
+* Failed: 0.
+* Suspicious responses: 0.
+
+## Failures Found And Fixed
+
+* `I have an expense to claim` did not start the reimbursement workflow.
+* `I have a bill to claim` was incorrectly treated as an advisory question instead of a workflow start.
+* `Is this reimbursable` continued the expense form instead of answering the question.
+* Singular recommendation wording such as `What reimbursement category do I use most` was not recognized.
+* Expense workflow resume and cancellation failed when the initial phrase had not started a workflow.
+* Semantic phrases with intervening words, including `need paternity leave` and `have a food bill`, were not recognized reliably.
+
+## Tests Added
+
+* Concatenated scenario-array loader coverage.
+* Count parsing coverage.
+* Validation-rule coverage.
+* Isolated Flask transport coverage.
+* JSON/CSV/report output coverage.
+* Expense workflow start, advisory distinction, singular recommendation, and semantic start-pattern regression tests.
+
+## Output Files Generated
+
+* `test_results/results.json`
+* `test_results/results.csv`
+* `test_results/summary_report.txt`
+
+## Verification
+
+* `venv\Scripts\python.exe -m unittest discover -s tests` passed with 89 tests.
+* `venv\Scripts\python.exe -m py_compile stress_test.py assistant_service.py tests\test_core.py` passed.
+* Final rate-limited QA run passed all 50 scenarios and 76 requests with no suspicious responses.
+
+## Schema Changes
+
+* None.
+
+## Known Limitations
+
+* The in-process transport uses deterministic seeded employee data and an offline fallback instead of calling Gemini.
+* HTTP transport should target a dedicated QA environment because scenario execution can create or modify workflow records.
+* The source scenario file contains three concatenated JSON arrays rather than one valid top-level JSON value; the framework handles this without modifying the source.
+# Session Update - Gemini HR Copilot and Policy RAG Foundation
+
+## Session Summary
+
+Added the first policy-grounded HR copilot foundation, repaired monthly leave-history routing, added observable and timeout-bounded Gemini calls, created an enterprise demonstration policy corpus, and prepared Supabase vector retrieval and document ingestion.
+
+## Features And Fixes
+
+* Questions such as `Did I take leave in June?` are now treated as approved leave-history retrieval rather than leave balance or a new leave application.
+* Sensitive and situational questions can route through Gemini with relevant policy context and authorized employee context.
+* Gemini diagnostics now log purpose, model, SDK, latency, token usage, and failures; legacy calls have a 30-second timeout.
+* Added local policy retrieval fallback and Supabase vector retrieval support.
+* Added idempotent RAG schema for private policy documents, 768-dimensional chunks, semantic matching, manager hierarchy, approval delegation, and escalation audit records.
+* Added a policy ingestion CLI with dry-run validation, source hashing, private Storage upload, chunking, embeddings, and replacement indexing.
+* Created six demonstration policy sources covering employee relations, harassment, leave, attendance, expenses, payroll, privacy, delegation, security, safety, performance, remote work, and separation.
+* Generated and visually reviewed a nine-page demonstration policy handbook PDF; generated DOCX is also available.
+
+## Files Added Or Updated
+
+* `app.py`
+* `assistant_service.py`
+* `config.py`
+* `gemini_service.py`
+* `policy_service.py`
+* `ingest_policies.py`
+* `rag_schema.sql`
+* `supabase_client.py`
+* `.env.example`
+* `requirements.txt`
+* `README.md`
+* `stress_test.py`
+* `tests/test_core.py`
+* `policies/source/*.md`
+* `policies/generated/Enterprise_HR_Policy_Handbook_Demo.docx`
+* `policies/generated/Enterprise_HR_Policy_Handbook_Demo.pdf`
+* `tools/build_policy_handbook.py`
+
+## Verification
+
+* 93 unit tests passed.
+* Python compilation passed for the application, RAG, ingestion, QA, and test modules.
+* Policy dry run parsed 6 documents into 40 chunks.
+* Flask `/login` smoke test returned HTTP 200.
+* All nine generated PDF pages were visually inspected without clipping or overlap.
+
+## Schema And Remaining Work
+
+* `rag_schema.sql` was supplied for Supabase execution.
+* Vector upload and live semantic retrieval remain pending because `SUPABASE_SERVICE_ROLE_KEY` exists in `.env` but has no value.
+* The current environment still uses the deprecated Gemini SDK compatibility path because dependency installation stalled; `requirements.txt` includes the maintained SDK for the next successful environment install.
+* Real company policies require HR/legal review before replacing the demonstration corpus.
+
+---
+
+# Session Update - RAG Indexing And Attendance Workflow Routing
+
+## Completed
+
+* Verified the configured Supabase service-role key and RAG schema.
+* Indexed 6 HR policy documents and 40 policy chunks in Supabase using 768-dimensional `models/gemini-embedding-001` embeddings.
+* Verified semantic retrieval for workplace harassment, manager-unavailable expense escalation, and bereavement questions.
+* Verified one live RAG response: Gemini used retrieved expense/delegation policy sections, gave escalation guidance, and cited both policy titles.
+* Replaced the obsolete `text-embedding-004` default after the API reported it unavailable through the legacy client.
+* Fixed combined attendance and leave commands: `punch me in today and apply for leave tomorrow` now punches in first and then starts the leave workflow.
+* Fixed active leave workflow contamination for attendance: punch actions and punch-status questions take priority, answer correctly, and offer to resume the leave request.
+
+## Tests And Verification
+
+* Added regression coverage for combined punch-in plus leave and attendance interruptions during leave workflows.
+* Full test suite passed with 95 tests.
+* Flask was restarted and `/login` returned HTTP 200 at `http://127.0.0.1:5000`.
+
+## Remaining Limitations
+
+* Manager availability and automatic approval escalation require `employees.manager_id` values and authorized `approval_delegations` records to be populated; the bot currently gives policy-grounded guidance when that operational data is absent.
+* The maintained `google-genai` dependency remains listed in `requirements.txt`, but the local runtime still uses the legacy SDK compatibility path until dependencies are successfully installed.
+
+---
+
+# Session Update - Retrieval Follow-up And Closing Fixes
+
+## Bugs Fixed
+
+* Attendance questions using phrasing such as `Was I punched in yesterday?`, `recorded present yesterday`, and `attendance log` now route to direct attendance retrieval instead of an active leave workflow.
+* Month-only leave-history follow-ups such as `in May?` now retain leave-history context, including trailing punctuation, and override an active leave workflow before offering the normal resume prompt.
+* Closing phrases with no active workflow, including `no nothing thank you`, now receive a natural sign-off rather than an HR-scope error.
+* HR-contact guidance no longer invents an email address; it only displays configured `HR_CONTACT_EMAIL` or `HR_CONTACT_CHANNEL` values and otherwise explains how to locate official details.
+* Gemini instructions now prohibit promises to check manager delegation or ownership when manager hierarchy data is not configured.
+
+## Verification
+
+* Added targeted regression coverage for the transcript's punch-history, month follow-up, HR contact, closing, and active-workflow interruption cases.
+* Full suite passed with 100 tests.
+* Flask restarted successfully; `/login` returned HTTP 200 at `http://127.0.0.1:5000`.
+
+---
+
+# Session Update - Gemini-First Tool Planner And Daily GitHub Sync
+
+## Conversation Architecture
+
+* Added `conversation_planner.py`, a Gemini-first structured planning layer that understands spelling mistakes, shorthand, follow-ups, indirect requests, and multiple actions in one message.
+* The planner selects safe HR actions such as attendance retrieval, punch in/out, leave history, leave application, expense history, payroll, HR summary, policy advice, cancellation, and close conversation.
+* `app.py` now executes planner actions through the existing validated handlers. Existing leave, OCR, expense, payroll, permission, workflow, and manager-approval logic was retained rather than replaced.
+* Deterministic phrase handling remains only as a fallback for Gemini outages or disabled planning, plus hard business validation after an action is selected.
+* Installed the maintained `google-genai` SDK. Live planner checks correctly interpreted typo-heavy attendance, multi-action leave, and harassment messages.
+
+## Regression Coverage
+
+* Added planner normalization, typo attendance interruption, and multi-action execution tests.
+* Full suite passed with 103 tests.
+* Python compilation passed for the planner, app, Gemini service, tests, and GitHub sync script.
+
+## Daily GitHub Sync
+
+* Added `tools/github_sync.py`.
+* The script commits and pushes changed project files to `origin/main`, skips `.env` and uploads via `.gitignore`, creates no commit when unchanged, and logs push failures without automatic pulls or merges.
+* Verified script dry run without committing or pushing current work.
+* Created active Codex automation `daily-hr-chatbot-github-sync` to run daily at 8 PM local time.

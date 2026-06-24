@@ -1,0 +1,554 @@
+﻿scenario_name,turn,user_message,bot_response,timestamp,status_code,pass,notes,failure_categories,suspicious
+leave_interrupt_salary_01,1,I need casual leave tomorrow,Got it. Should this be a Full Day or Half Day leave?,2026-06-06T11:37:43.390099+00:00,200,True,,[],False
+leave_interrupt_salary_01,2,Show my salary for May,"QA Employee, your salary for May 2026:
+Basic: INR 50,000.00
+HRA: INR 10,000.00
+Allowances: INR 5,000.00
+Reimbursements: INR 4,500.00
+Deductions: INR 2,000.00
+Net Salary: INR 67,500.00
+
+Would you like to:
+- View payslip
+- Compare another month
+- View salary history
+
+Would you like to continue your leave request? Reply continue to resume it, or cancel to discard it.",2026-06-06T11:37:49.399675+00:00,200,True,,[],False
+leave_interrupt_salary_01,3,continue,Got it. Should this be a Full Day or Half Day leave?,2026-06-06T11:37:55.404232+00:00,200,True,,[],False
+leave_interrupt_salary_01,4,cancel,"No problem. The leave request has been cancelled.
+
+Let me know if you need anything else.",2026-06-06T11:38:01.405906+00:00,200,True,,[],False
+leave_interrupt_attendance_01,1,I need leave tomorrow,I can help prepare a leave request and check your available balance before it goes to your manager. Which leave type would you like to apply for?,2026-06-06T11:38:07.396826+00:00,200,True,,[],False
+leave_interrupt_attendance_01,2,Show attendance for June,"QA Employee, attendance from 2026-06-01 to 2026-06-06:
+Present: 2
+Absent: 3
+No record yet: 1
+
+Recent records:
+2026-06-01: Present
+2026-06-02: Absent
+2026-06-03: Absent
+2026-06-04: Absent
+2026-06-05: Present
+2026-06-06: No record yet
+
+Would you like to view attendance history, check a specific date, or view leave records?
+
+Would you like to continue your leave request? Reply continue to resume it, or cancel to discard it.",2026-06-06T11:38:13.400176+00:00,200,True,,[],False
+leave_interrupt_attendance_01,3,resume,I can help prepare a leave request and check your available balance before it goes to your manager. Which leave type would you like to apply for?,2026-06-06T11:38:19.405096+00:00,200,True,,[],False
+leave_interrupt_attendance_01,4,cancel,"No problem. The leave request has been cancelled.
+
+Let me know if you need anything else.",2026-06-06T11:38:25.407695+00:00,200,True,,[],False
+leave_cancel_changed_mind,1,I need leave tomorrow,I can help prepare a leave request and check your available balance before it goes to your manager. Which leave type would you like to apply for?,2026-06-06T11:38:31.412099+00:00,200,True,,[],False
+leave_cancel_changed_mind,2,I changed my mind,"No problem. The leave request has been cancelled.
+
+Let me know if you need anything else.",2026-06-06T11:38:37.415400+00:00,200,True,,[],False
+leave_cancel_not_now,1,I need leave tomorrow,I can help prepare a leave request and check your available balance before it goes to your manager. Which leave type would you like to apply for?,2026-06-06T11:38:43.419105+00:00,200,True,,[],False
+leave_cancel_not_now,2,not now,"No problem. The leave request has been cancelled.
+
+Let me know if you need anything else.",2026-06-06T11:38:49.422988+00:00,200,True,,[],False
+leave_cancel_maybe_later,1,I need leave tomorrow,I can help prepare a leave request and check your available balance before it goes to your manager. Which leave type would you like to apply for?,2026-06-06T11:38:55.426626+00:00,200,True,,[],False
+leave_cancel_maybe_later,2,maybe later,"No problem. The leave request has been cancelled.
+
+Let me know if you need anything else.",2026-06-06T11:39:01.429012+00:00,200,True,,[],False
+leave_cancel_forget_it,1,I need leave tomorrow,I can help prepare a leave request and check your available balance before it goes to your manager. Which leave type would you like to apply for?,2026-06-06T11:39:07.433984+00:00,200,True,,[],False
+leave_cancel_forget_it,2,forget it,"No problem. The leave request has been cancelled.
+
+Let me know if you need anything else.",2026-06-06T11:39:13.437566+00:00,200,True,,[],False
+leave_week_request,1,I need paternity leave for a week from next Monday,Please share a short reason for this leave request so your manager has the right context.,2026-06-06T11:39:19.441333+00:00,200,True,,[],False
+leave_indirect_01,1,Won't be coming tomorrow,I can help prepare a leave request and check your available balance before it goes to your manager. Which leave type would you like to apply for?,2026-06-06T11:39:25.445742+00:00,200,True,,[],False
+leave_indirect_02,1,Need a day off tomorrow,I can help prepare a leave request and check your available balance before it goes to your manager. Which leave type would you like to apply for?,2026-06-06T11:39:31.450984+00:00,200,True,,[],False
+leave_indirect_03,1,Taking tomorrow off,I can help prepare a leave request and check your available balance before it goes to your manager. Which leave type would you like to apply for?,2026-06-06T11:39:37.455190+00:00,200,True,,[],False
+leave_balance_check,1,How many leaves do I have,"QA Employee, here are your leave balances:
+Leave Type | Remaining | Used
+Casual Leave: 2 remaining, 3 used
+Privilege Leave: 8 remaining, 1 used
+Paternity Leave: 10 remaining, 0 used
+Marriage Leave: 5 remaining, 0 used
+Bereavement Leave: 5 remaining, 0 used
+Unpaid Leave: 30 remaining, 0 used
+
+Note: You are running low on Casual Leave.
+
+Would you like to apply leave or view leave requests?",2026-06-06T11:39:43.442618+00:00,200,True,,[],False
+leave_balance_low,1,Am I running low on leave balance,"QA Employee, here are your leave balances:
+Leave Type | Remaining | Used
+Casual Leave: 2 remaining, 3 used
+Privilege Leave: 8 remaining, 1 used
+Paternity Leave: 10 remaining, 0 used
+Marriage Leave: 5 remaining, 0 used
+Bereavement Leave: 5 remaining, 0 used
+Unpaid Leave: 30 remaining, 0 used
+
+Note: You are running low on Casual Leave.
+
+Would you like to apply leave or view leave requests?",2026-06-06T11:39:49.446275+00:00,200,True,,[],False
+leave_recommendation,1,Which leave should I use,"Based on your current balances, Unpaid Leave has the highest availability (30 days).
+
+Historically, your most used approved leave type is Casual Leave (1 request(s)).
+
+For personal short absences, use Casual Leave. For planned longer absences, use Privilege Leave. For specific life events, use the matching leave type if available.",2026-06-06T11:39:55.451169+00:00,200,True,,[],False
+leave_recommendation_unsure,1,I am not sure which leave to use,"Based on your current balances, Unpaid Leave has the highest availability (30 days).
+
+Historically, your most used approved leave type is Casual Leave (1 request(s)).
+
+For personal short absences, use Casual Leave. For planned longer absences, use Privilege Leave. For specific life events, use the matching leave type if available.",2026-06-06T11:40:01.456033+00:00,200,True,,[],False
+attendance_month,1,Show attendance for May,"QA Employee, attendance from 2026-05-01 to 2026-05-31:
+Absent: 29
+Present: 1
+Leave: 1
+
+Recent records:
+2026-05-24: Absent
+2026-05-25: Absent
+2026-05-26: Absent
+2026-05-27: Absent
+2026-05-28: Absent
+2026-05-29: Absent
+2026-05-30: Absent
+2026-05-31: Absent
+
+Would you like to view attendance history, check a specific date, or view leave records?",2026-06-06T11:40:07.443789+00:00,200,True,,[],False
+attendance_specific_date,1,Was I present on June 2,"QA Employee, attendance for 2026-06-02: Absent.
+
+Would you like to view attendance history, check another date, or view leave records?",2026-06-06T11:40:13.448931+00:00,200,True,,[],False
+attendance_compare,1,Compare attendance for May and June,"QA Employee, attendance comparison:
+May 2026: Present 1, Leave 1, Absent 29
+June 2026: Present 2, Leave 0, Absent 3
+Difference: 1 present day(s) increase.
+
+Would you like to view detailed attendance history or check a specific date?",2026-06-06T11:40:19.453362+00:00,200,True,,[],False
+attendance_history,1,Show my attendance history,"QA Employee, attendance from 2026-05-23 to 2026-06-06:
+Absent: 12
+Present: 2
+No record yet: 1
+
+Recent records:
+2026-05-30: Absent
+2026-05-31: Absent
+2026-06-01: Present
+2026-06-02: Absent
+2026-06-03: Absent
+2026-06-04: Absent
+2026-06-05: Present
+2026-06-06: No record yet
+
+Would you like to view attendance history, check a specific date, or view leave records?",2026-06-06T11:40:25.445963+00:00,200,True,,[],False
+attendance_and_salary,1,Show my attendance and salary,"Attendance:
+QA Employee, attendance from 2026-06-01 to 2026-06-06:
+Present: 2
+Absent: 3
+No record yet: 1
+
+Recent records:
+2026-06-01: Present
+2026-06-02: Absent
+2026-06-03: Absent
+2026-06-04: Absent
+2026-06-05: Present
+2026-06-06: No record yet
+
+Would you like to view attendance history, check a specific date, or view leave records?
+
+Payroll:
+QA Employee, salary for June 2026:
+Basic: INR 50,000.00
+HRA: INR 10,000.00
+Allowances: INR 5,000.00
+Reimbursements: INR 0.00
+Deductions: INR 2,000.00
+Net Salary: INR 63,000.00",2026-06-06T11:40:31.450513+00:00,200,True,,[],False
+payroll_may,1,Show my salary for May,"QA Employee, your salary for May 2026:
+Basic: INR 50,000.00
+HRA: INR 10,000.00
+Allowances: INR 5,000.00
+Reimbursements: INR 4,500.00
+Deductions: INR 2,000.00
+Net Salary: INR 67,500.00
+
+Would you like to:
+- View payslip
+- Compare another month
+- View salary history",2026-06-06T11:40:37.457767+00:00,200,True,,[],False
+payroll_context_april,1,Show my salary for May,"QA Employee, your salary for May 2026:
+Basic: INR 50,000.00
+HRA: INR 10,000.00
+Allowances: INR 5,000.00
+Reimbursements: INR 4,500.00
+Deductions: INR 2,000.00
+Net Salary: INR 67,500.00
+
+Would you like to:
+- View payslip
+- Compare another month
+- View salary history",2026-06-06T11:40:43.461874+00:00,200,True,,[],False
+payroll_context_april,2,April,"QA Employee, your salary for April 2026:
+Basic: INR 50,000.00
+HRA: INR 10,000.00
+Allowances: INR 5,000.00
+Reimbursements: INR 3,000.00
+Deductions: INR 2,000.00
+Net Salary: INR 66,000.00
+
+Would you like to:
+- View payslip
+- Compare another month
+- View salary history",2026-06-06T11:40:49.463482+00:00,200,True,,[],False
+payroll_context_june,1,Show my salary for May,"QA Employee, your salary for May 2026:
+Basic: INR 50,000.00
+HRA: INR 10,000.00
+Allowances: INR 5,000.00
+Reimbursements: INR 4,500.00
+Deductions: INR 2,000.00
+Net Salary: INR 67,500.00
+
+Would you like to:
+- View payslip
+- Compare another month
+- View salary history",2026-06-06T11:40:55.468788+00:00,200,True,,[],False
+payroll_context_june,2,June,"QA Employee, your salary for June 2026:
+Basic: INR 50,000.00
+HRA: INR 10,000.00
+Allowances: INR 5,000.00
+Reimbursements: INR 0.00
+Deductions: INR 2,000.00
+Net Salary: INR 63,000.00
+
+Would you like to:
+- View payslip
+- Compare another month
+- View salary history",2026-06-06T11:41:01.471455+00:00,200,True,,[],False
+payroll_compare,1,Compare May and June salary,"QA Employee, salary comparison:
+May 2026: INR 67,500.00
+June 2026: INR 63,000.00
+Difference: INR 4,500.00 decrease
+
+Reason:
+Reimbursement: INR 4,500.00 lower
+
+Would you like to:
+- View payslip
+- Compare another month
+- View salary history",2026-06-06T11:41:07.459989+00:00,200,True,,[],False
+payroll_highest,1,Which month had my highest salary,"Your highest net salary was INR 67,500.00 in May 2026.",2026-06-06T11:41:13.465869+00:00,200,True,,[],False
+payroll_breakdown,1,Show my salary breakdown,"QA Employee, your payslip for June 2026 is ready.
+View: /payslip?month=June%202026
+Download PDF: /payslip/download?month=June%202026
+
+Would you like to:
+- View payslip
+- Compare another month
+- View salary history",2026-06-06T11:41:19.468770+00:00,200,True,,[],False
+payroll_reimbursement_question,1,How much reimbursement did I receive this year,"To submit an expense reimbursement:
+1. Enter the expense amount.
+2. Select a category: Travel, Food, Accommodation, or Software / Tools.
+3. Provide a short description.
+4. If the amount exceeds INR 200, upload a receipt.
+5. OCR will validate the receipt where possible.
+6. The request will be sent to your manager for approval.
+7. Once approved, it can be added to payroll.
+
+You can start by saying: I want to submit an expense.",2026-06-06T11:41:25.472817+00:00,200,True,,[],False
+summary_monthly,1,Monthly summary,"HR Summary - June 2026
+Employee: QA Employee
+Attendance:
+Present this month: 2
+Absent this month: 4
+Approved leave days this month: 0
+
+Leave Balances:
+Casual Leave: 2 remaining
+Privilege Leave: 8 remaining
+Paternity Leave: 10 remaining
+Marriage Leave: 5 remaining
+Bereavement Leave: 5 remaining
+Unpaid Leave: 30 remaining
+
+Requests:
+Pending: 1
+Approved: 1
+
+Expenses:
+Pending: INR 800.00
+Approved: INR 4,500.00
+
+Payroll:
+Latest Salary: INR 63,000.00
+Latest Payslip: June 2026
+
+Recent Activity:
+Last Leave Request: Pending Privilege Leave from 2026-06-20
+Last Expense Claim: Pending INR 800.00
+Latest Payroll Record: June 2026
+
+Insights:
+Your Casual Leave balance is running low.
+Your most common reimbursement category is Travel.
+Your latest salary decreased partly because reimbursements were lower than the previous payroll record.",2026-06-06T11:41:31.477205+00:00,200,True,,[],False
+summary_hr,1,HR summary,"HR Summary - June 2026
+Employee: QA Employee
+Attendance:
+Present this month: 2
+Absent this month: 4
+Approved leave days this month: 0
+
+Leave Balances:
+Casual Leave: 2 remaining
+Privilege Leave: 8 remaining
+Paternity Leave: 10 remaining
+Marriage Leave: 5 remaining
+Bereavement Leave: 5 remaining
+Unpaid Leave: 30 remaining
+
+Requests:
+Pending: 1
+Approved: 1
+
+Expenses:
+Pending: INR 800.00
+Approved: INR 4,500.00
+
+Payroll:
+Latest Salary: INR 63,000.00
+Latest Payslip: June 2026
+
+Recent Activity:
+Last Leave Request: Pending Privilege Leave from 2026-06-20
+Last Expense Claim: Pending INR 800.00
+Latest Payroll Record: June 2026
+
+Insights:
+Your Casual Leave balance is running low.
+Your most common reimbursement category is Travel.
+Your latest salary decreased partly because reimbursements were lower than the previous payroll record.",2026-06-06T11:41:37.483474+00:00,200,True,,[],False
+summary_dashboard,1,Give me my dashboard,"HR Summary - June 2026
+Employee: QA Employee
+Attendance:
+Present this month: 2
+Absent this month: 4
+Approved leave days this month: 0
+
+Leave Balances:
+Casual Leave: 2 remaining
+Privilege Leave: 8 remaining
+Paternity Leave: 10 remaining
+Marriage Leave: 5 remaining
+Bereavement Leave: 5 remaining
+Unpaid Leave: 30 remaining
+
+Requests:
+Pending: 1
+Approved: 1
+
+Expenses:
+Pending: INR 800.00
+Approved: INR 4,500.00
+
+Payroll:
+Latest Salary: INR 63,000.00
+Latest Payslip: June 2026
+
+Recent Activity:
+Last Leave Request: Pending Privilege Leave from 2026-06-20
+Last Expense Claim: Pending INR 800.00
+Latest Payroll Record: June 2026
+
+Insights:
+Your Casual Leave balance is running low.
+Your most common reimbursement category is Travel.
+Your latest salary decreased partly because reimbursements were lower than the previous payroll record.",2026-06-06T11:41:43.487296+00:00,200,True,,[],False
+summary_total,1,Give me a summary for this month,"HR Summary - June 2026
+Employee: QA Employee
+Attendance:
+Present this month: 2
+Absent this month: 4
+Approved leave days this month: 0
+
+Leave Balances:
+Casual Leave: 2 remaining
+Privilege Leave: 8 remaining
+Paternity Leave: 10 remaining
+Marriage Leave: 5 remaining
+Bereavement Leave: 5 remaining
+Unpaid Leave: 30 remaining
+
+Requests:
+Pending: 1
+Approved: 1
+
+Expenses:
+Pending: INR 800.00
+Approved: INR 4,500.00
+
+Payroll:
+Latest Salary: INR 63,000.00
+Latest Payslip: June 2026
+
+Recent Activity:
+Last Leave Request: Pending Privilege Leave from 2026-06-20
+Last Expense Claim: Pending INR 800.00
+Latest Payroll Record: June 2026
+
+Insights:
+Your Casual Leave balance is running low.
+Your most common reimbursement category is Travel.
+Your latest salary decreased partly because reimbursements were lower than the previous payroll record.",2026-06-06T11:41:49.491312+00:00,200,True,,[],False
+expense_basic_travel,1,I spent money on travel,"It sounds like you would like to submit a travel reimbursement.
+
+Reimbursements are sent to your manager for approval. If the amount is above INR 200, a receipt will be required for OCR validation.
+
+What amount would you like to claim?",2026-06-06T11:41:55.494837+00:00,200,True,,[],False
+expense_basic_food,1,I have a food bill to claim,"It sounds like you would like to submit a food reimbursement.
+
+Reimbursements are sent to your manager for approval. If the amount is above INR 200, a receipt will be required for OCR validation.
+
+What amount would you like to claim?",2026-06-06T11:42:01.500713+00:00,200,True,,[],False
+expense_basic_software,1,I bought software for work,"It sounds like you would like to submit a software / tools reimbursement.
+
+Reimbursements are sent to your manager for approval. If the amount is above INR 200, a receipt will be required for OCR validation.
+
+What amount would you like to claim?",2026-06-06T11:42:07.504818+00:00,200,True,,[],False
+expense_basic_accommodation,1,Need reimbursement for hotel stay,"It sounds like you would like to submit a accommodation reimbursement.
+
+Reimbursements are sent to your manager for approval. If the amount is above INR 200, a receipt will be required for OCR validation.
+
+What amount would you like to claim?",2026-06-06T11:42:13.508828+00:00,200,True,,[],False
+expense_indirect_01,1,I paid for a client dinner,"It sounds like you would like to submit a food reimbursement.
+
+Reimbursements are sent to your manager for approval. If the amount is above INR 200, a receipt will be required for OCR validation.
+
+What amount would you like to claim?",2026-06-06T11:42:19.513832+00:00,200,True,,[],False
+expense_indirect_02,1,Can company reimburse this expense,"If this was a work-related expense, it may be reimbursable after manager approval.
+For claims above INR 200, keep the receipt because OCR validation is required.
+
+You can continue the claim when you are ready, or cancel it if this is not worth submitting.",2026-06-06T11:42:25.517287+00:00,200,True,,[],False
+expense_advisory_01,1,I spent 4000 on a client dinner,"It sounds like you would like to submit a food reimbursement.
+
+Reimbursements are sent to your manager for approval. If the amount is above INR 200, a receipt will be required for OCR validation.
+
+What amount would you like to claim?",2026-06-06T11:42:31.520314+00:00,200,True,,[],False
+expense_advisory_01,2,Should I claim it,"If this was a work-related expense, it may be reimbursable after manager approval.
+For claims above INR 200, keep the receipt because OCR validation is required.
+
+You can continue the claim when you are ready, or cancel it if this is not worth submitting.
+
+Would you like to continue your expense request? Reply continue to resume it, or cancel to discard it.",2026-06-06T11:42:37.523149+00:00,200,True,,[],False
+expense_advisory_02,1,I spent money on travel,"It sounds like you would like to submit a travel reimbursement.
+
+Reimbursements are sent to your manager for approval. If the amount is above INR 200, a receipt will be required for OCR validation.
+
+What amount would you like to claim?",2026-06-06T11:42:43.529000+00:00,200,True,,[],False
+expense_advisory_02,2,Will my manager approve it,"If this was a work-related expense, it may be reimbursable after manager approval.
+For claims above INR 200, keep the receipt because OCR validation is required.
+Manager approval usually depends on business purpose, category, amount, and receipt quality.
+
+You can continue the claim when you are ready, or cancel it if this is not worth submitting.
+
+Would you like to continue your expense request? Reply continue to resume it, or cancel to discard it.",2026-06-06T11:42:49.531539+00:00,200,True,,[],False
+expense_advisory_03,1,I bought software for work,"It sounds like you would like to submit a software / tools reimbursement.
+
+Reimbursements are sent to your manager for approval. If the amount is above INR 200, a receipt will be required for OCR validation.
+
+What amount would you like to claim?",2026-06-06T11:42:55.534887+00:00,200,True,,[],False
+expense_advisory_03,2,Is this reimbursable,"If this was a work-related expense, it may be reimbursable after manager approval.
+For claims above INR 200, keep the receipt because OCR validation is required.
+
+You can continue the claim when you are ready, or cancel it if this is not worth submitting.
+
+Would you like to continue your expense request? Reply continue to resume it, or cancel to discard it.",2026-06-06T11:43:01.521234+00:00,200,True,,[],False
+expense_advisory_04,1,I have a food bill,"It sounds like you would like to submit a food reimbursement.
+
+Reimbursements are sent to your manager for approval. If the amount is above INR 200, a receipt will be required for OCR validation.
+
+What amount would you like to claim?",2026-06-06T11:43:07.526499+00:00,200,True,,[],False
+expense_advisory_04,2,Is it worth claiming,"If this was a work-related expense, it may be reimbursable after manager approval.
+For claims above INR 200, keep the receipt because OCR validation is required.
+
+You can continue the claim when you are ready, or cancel it if this is not worth submitting.
+
+Would you like to continue your expense request? Reply continue to resume it, or cancel to discard it.",2026-06-06T11:43:13.529630+00:00,200,True,,[],False
+expense_history_latest,1,Show my latest reimbursement,"Expense claims:
+Pending: Food INR 800.00 - Client dinner
+
+Would you like to submit a claim, view claims, or check reimbursement status?",2026-06-06T11:43:19.533282+00:00,200,True,,[],False
+expense_history_pending,1,Show pending reimbursements,"Expense claims:
+Pending: Food INR 800.00 - Client dinner
+
+Would you like to submit a claim, view claims, or check reimbursement status?",2026-06-06T11:43:25.520657+00:00,200,True,,[],False
+expense_history_approved,1,Show approved reimbursements,"Expense claims:
+Approved: Travel INR 4,500.00 - Client travel
+
+Would you like to submit a claim, view claims, or check reimbursement status?",2026-06-06T11:43:31.522991+00:00,200,True,,[],False
+expense_category_usage,1,What reimbursement category do I use most,"Your most frequently used reimbursement category is Travel (1 claim(s)).
+
+That may be useful when reviewing recurring work expenses or planning what receipts to keep.",2026-06-06T11:43:37.528331+00:00,200,True,,[],False
+expense_compare_months,1,Compare reimbursements for May and June,"QA Employee, reimbursement comparison:
+May 2026: INR 4,500.00
+June 2026: INR 0.00
+Difference: INR 4,500.00 decrease
+
+Reason:
+Reimbursement changed from INR 4,500.00 to INR 0.00.
+
+Would you like to:
+- Submit a claim
+- View claims
+- Check reimbursement status",2026-06-06T11:43:43.532042+00:00,200,True,,[],False
+expense_workflow_salary_switch,1,I have an expense to claim,It sounds like you would like to submit a reimbursement claim. Expenses above INR 200 need a receipt for OCR validation before manager approval. What amount would you like to claim?,2026-06-06T11:43:49.536745+00:00,200,True,,[],False
+expense_workflow_salary_switch,2,Show my salary,"QA Employee, your salary for June 2026:
+Basic: INR 50,000.00
+HRA: INR 10,000.00
+Allowances: INR 5,000.00
+Reimbursements: INR 0.00
+Deductions: INR 2,000.00
+Net Salary: INR 63,000.00
+
+Would you like to:
+- View payslip
+- Compare another month
+- View salary history
+
+Would you like to continue your expense request? Reply continue to resume it, or cancel to discard it.",2026-06-06T11:43:55.541831+00:00,200,True,,[],False
+expense_workflow_salary_switch,3,continue,It sounds like you would like to submit a reimbursement claim. Expenses above INR 200 need a receipt for OCR validation before manager approval. What amount would you like to claim?,2026-06-06T11:44:01.544354+00:00,200,True,,[],False
+expense_workflow_salary_switch,4,cancel,"No problem. The reimbursement request has been cancelled.
+
+Let me know if you need anything else.",2026-06-06T11:44:07.546027+00:00,200,True,,[],False
+expense_workflow_attendance_switch,1,I want reimbursement,It sounds like you would like to submit a reimbursement claim. Expenses above INR 200 need a receipt for OCR validation before manager approval. What amount would you like to claim?,2026-06-06T11:44:13.550033+00:00,200,True,,[],False
+expense_workflow_attendance_switch,2,Show attendance for May,"QA Employee, attendance from 2026-05-01 to 2026-05-31:
+Absent: 29
+Present: 1
+Leave: 1
+
+Recent records:
+2026-05-24: Absent
+2026-05-25: Absent
+2026-05-26: Absent
+2026-05-27: Absent
+2026-05-28: Absent
+2026-05-29: Absent
+2026-05-30: Absent
+2026-05-31: Absent
+
+Would you like to view attendance history, check a specific date, or view leave records?
+
+Would you like to continue your expense request? Reply continue to resume it, or cancel to discard it.",2026-06-06T11:44:19.538037+00:00,200,True,,[],False
+expense_workflow_attendance_switch,3,resume,It sounds like you would like to submit a reimbursement claim. Expenses above INR 200 need a receipt for OCR validation before manager approval. What amount would you like to claim?,2026-06-06T11:44:25.542460+00:00,200,True,,[],False
+expense_workflow_attendance_switch,4,cancel,"No problem. The reimbursement request has been cancelled.
+
+Let me know if you need anything else.",2026-06-06T11:44:31.544616+00:00,200,True,,[],False
+expense_workflow_leave_switch,1,I need reimbursement,It sounds like you would like to submit a reimbursement claim. Expenses above INR 200 need a receipt for OCR validation before manager approval. What amount would you like to claim?,2026-06-06T11:44:37.547822+00:00,200,True,,[],False
+expense_workflow_leave_switch,2,I need leave tomorrow,"It sounds like you would like to apply for leave.
+
+I can help prepare the leave request, check your balance, and send it for manager approval.
+
+You already have an expense claim in progress. Would you like to switch to leave or continue the reimbursement request?
+Reply switch to leave, or continue reimbursement request.",2026-06-06T11:44:43.550868+00:00,200,True,,[],False
+expense_workflow_leave_switch,3,switch,I can help prepare a leave request and check your available balance before it goes to your manager. Which leave type would you like to apply for?,2026-06-06T11:44:49.554603+00:00,200,True,,[],False
+expense_workflow_cancel,1,I have a bill to claim,It sounds like you would like to submit a reimbursement claim. Expenses above INR 200 need a receipt for OCR validation before manager approval. What amount would you like to claim?,2026-06-06T11:44:55.559952+00:00,200,True,,[],False
+expense_workflow_cancel,2,never mind,"No problem. The reimbursement request has been cancelled.
+
+Let me know if you need anything else.",2026-06-06T11:45:01.562253+00:00,200,True,,[],False
+expense_workflow_cancel_02,1,I have a bill to claim,It sounds like you would like to submit a reimbursement claim. Expenses above INR 200 need a receipt for OCR validation before manager approval. What amount would you like to claim?,2026-06-06T11:45:07.565830+00:00,200,True,,[],False
+expense_workflow_cancel_02,2,leave it,"No problem. The reimbursement request has been cancelled.
+
+Let me know if you need anything else.",2026-06-06T11:45:13.568227+00:00,200,True,,[],False

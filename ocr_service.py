@@ -11,6 +11,11 @@ from dateutil import parser as date_parser
 
 from config import Config
 
+try:
+    from PIL import Image, ImageEnhance, ImageFilter, ImageOps
+except ImportError:  # pragma: no cover - runtime fallback if Pillow is missing
+    Image = ImageEnhance = ImageFilter = ImageOps = None
+
 
 @dataclass
 class OcrResult:
@@ -86,6 +91,7 @@ def _extract_amount_legacy(text):
 
 
 def _extract_amount(text):
+    grand_total_candidates = []
     payable_total_candidates = []
     fallback_total_candidates = []
     all_amounts = []
@@ -123,18 +129,40 @@ def _extract_amount(text):
         )
         has_total_label = re.search(r"\btotal\b", lowered) is not None
 
-        if has_payable_label and not is_tax_or_subtotal:
+        if "grand total" in lowered and not is_tax_or_subtotal:
+            grand_total_candidates.append((line_number, line_amounts[-1]))
+        elif has_payable_label and not is_tax_or_subtotal:
             payable_total_candidates.append((line_number, line_amounts[-1]))
         elif has_total_label and not is_tax_or_subtotal:
             fallback_total_candidates.append((line_number, line_amounts[-1]))
 
+    if grand_total_candidates:
+        return grand_total_candidates[-1][1]
     if payable_total_candidates:
         return payable_total_candidates[-1][1]
     if fallback_total_candidates:
         return fallback_total_candidates[-1][1]
     if all_amounts:
-        return max(all_amounts)
+        return all_amounts[-1]
     return None
+
+
+def preprocess_receipt_image(image_path, output_path):
+    if not Image:
+        return Path(image_path)
+
+    try:
+        with Image.open(image_path) as image:
+            prepared = ImageOps.grayscale(image)
+            prepared = ImageEnhance.Contrast(prepared).enhance(2.0)
+            prepared = prepared.filter(ImageFilter.SHARPEN)
+            prepared = prepared.filter(ImageFilter.UnsharpMask(radius=1.2, percent=140, threshold=3))
+            prepared = prepared.point(lambda pixel: 255 if pixel > 165 else 0, mode="1")
+            prepared.save(output_path)
+        return Path(output_path)
+    except Exception:
+        logging.getLogger(__name__).warning("Receipt preprocessing failed; using original image.", exc_info=True)
+        return Path(image_path)
 
 
 def _extract_date(text):
@@ -199,9 +227,10 @@ def run_tesseract(image_path):
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         output_base = str(Path(tmp_dir) / "receipt_ocr")
+        processed_image = preprocess_receipt_image(image, Path(tmp_dir) / "receipt_preprocessed.png")
         command = [
             str(executable),
-            str(image),
+            str(processed_image),
             output_base,
             "-l",
             "eng",

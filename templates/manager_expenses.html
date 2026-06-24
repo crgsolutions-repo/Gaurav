@@ -55,6 +55,9 @@
                             {% if expense._is_new %}
                             <span class="new-tag">New</span>
                             {% endif %}
+                            {% if expense._amount_not_validated %}
+                            <span class="review-tag">Amount not validated</span>
+                            {% endif %}
                         </p>
                     </div>
 
@@ -71,6 +74,12 @@
                             <dt>Vendor</dt>
                             <dd>{{ expense.vendor_name or "Not detected" }}</dd>
                         </div>
+                        {% if expense._amount_not_validated %}
+                        <div>
+                            <dt>Manager Check</dt>
+                            <dd>Please validate the claimed amount against the receipt before approval.</dd>
+                        </div>
+                        {% endif %}
                         <div>
                             <dt>Invoice</dt>
                             <dd>{{ expense.invoice_number or "Not required" }}</dd>

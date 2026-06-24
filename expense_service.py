@@ -50,6 +50,8 @@ def infer_amount_from_message(message):
     patterns = [
         r"(?:₹|rs\.?|inr)\s*(\d+(?:\.\d{1,2})?)",
         r"\b(\d+(?:\.\d{1,2})?)\s*(?:rupees?|rs\.?|inr)\b",
+        r"\bamount\s+(?:is|should\s+be|was)\s+(?:₹|rs\.?|inr)?\s*(\d+(?:\.\d{1,2})?)\b",
+        r"\b(\d+(?:\.\d{1,2})?)\s*(?:grand\s+total|total|net|payable)\b",
         r"\b(?:amount|claim|expense|reimbursement|for|of)\s+(?:₹|rs\.?|inr)?\s*(\d+(?:\.\d{1,2})?)\b",
         r"^\s*(\d+(?:\.\d{1,2})?)\s*$",
     ]
@@ -214,9 +216,9 @@ def next_expense_step(payload):
 
 def expense_step_prompt(step):
     prompts = {
-        "amount": "What amount would you like to claim?",
+        "amount": "It sounds like you would like to submit a reimbursement claim. Expenses above INR 200 need a receipt for OCR validation before manager approval. What amount would you like to claim?",
         "expense_type": expense_type_prompt(),
-        "description": "Please provide a short description for this expense.",
+        "description": "Please provide a short description for this expense so your manager can understand the business purpose.",
         "receipt": "Please attach the receipt image with your message so I can validate it.",
     }
     return prompts.get(step, "Please confirm if you want me to submit this expense request.")
@@ -224,7 +226,19 @@ def expense_step_prompt(step):
 
 def format_ocr_context(payload):
     amount = normalize_amount(payload.get("ocr_amount") or payload.get("amount"))
+    claimed_amount = normalize_amount(payload.get("amount"))
     lines = []
+    if amount and claimed_amount and abs(float(claimed_amount) - float(amount)) > 0.01:
+        lines.append(f"Claimed Amount: ₹{money(claimed_amount)}")
+        lines.append(f"OCR Amount: ₹{money(amount)}")
+        lines.append("Amount Validation: Manager review required")
+        if not is_unknown(payload.get("vendor_name")):
+            lines.append(f"Vendor: {payload['vendor_name']}")
+        if not is_unknown(payload.get("invoice_number")):
+            lines.append(f"Invoice: {payload['invoice_number']}")
+        if not is_unknown(payload.get("bill_date")):
+            lines.append(f"Receipt Date: {payload['bill_date']}")
+        return "\n".join(lines)
     if amount:
         lines.append(f"Amount: ₹{money(amount)}")
     if not is_unknown(payload.get("vendor_name")):
@@ -238,6 +252,14 @@ def format_ocr_context(payload):
 
 def format_expense_followup(step, payload):
     prompt = expense_step_prompt(step)
+    if step == "amount":
+        expense_type = normalize_expense_type(payload.get("expense_type"))
+        if expense_type:
+            return (
+                f"It sounds like you would like to submit a {expense_type.lower()} reimbursement.\n\n"
+                "Reimbursements are sent to your manager for approval. If the amount is above INR 200, a receipt will be required for OCR validation.\n\n"
+                "What amount would you like to claim?"
+            )
     if not is_unknown(payload.get("receipt_filename")) and not is_unknown(payload.get("receipt_ocr_done")):
         context = format_ocr_context(payload)
         if context:
@@ -250,12 +272,22 @@ def format_expense_confirmation(employee_name, payload):
     expense_type = normalize_expense_type(payload.get("expense_type"))
     description = payload.get("description") if not is_unknown(payload.get("description")) else "Not provided"
     receipt_status = "Attached" if not is_unknown(payload.get("receipt_filename")) else "Not required"
+    warning = ""
+    ocr_amount = normalize_amount(payload.get("ocr_amount"))
+    claimed_amount = normalize_amount(payload.get("amount"))
+    if ocr_amount and claimed_amount and abs(float(claimed_amount) - float(ocr_amount)) > 0.01:
+        warning = (
+            "\nOCR read a different amount, so the manager will manually validate this bill amount.\n"
+            f"OCR Amount: ₹{money(ocr_amount)}\n"
+        )
+
     return (
         f"{employee_name}, please confirm this reimbursement request:\n"
         f"Amount: ₹{amount}\n"
         f"Expense Type: {expense_type}\n"
         f"Description: {description}\n"
-        f"Receipt: {receipt_status}\n\n"
+        f"Receipt: {receipt_status}\n"
+        f"{warning}\n"
         "Reply with confirm to submit, or cancel to discard it."
     )
 
@@ -286,12 +318,7 @@ def validate_ocr_payload(payload):
 
     if ocr_result.amount is None:
         return None, "I could not detect the receipt amount. Please upload a clearer receipt."
-    if abs(float(amount) - float(ocr_result.amount)) > 0.01:
-        return None, (
-            "Claim amount does not match receipt amount.\n\n"
-            f"Claimed Amount: ₹{money(amount)}\n"
-            f"Receipt Amount: ₹{money(ocr_result.amount)}"
-        )
+    amount_validation_required = abs(float(amount) - float(ocr_result.amount)) > 0.01
 
     if not ocr_result.bill_date:
         return None, "I could not detect the receipt date. Please upload a clearer receipt."
@@ -311,6 +338,7 @@ def validate_ocr_payload(payload):
         "bill_date": ocr_result.bill_date.isoformat(),
         "invoice_number": invoice_number,
         "vendor_name": ocr_result.vendor_name,
+        "amount_validation_required": "true" if amount_validation_required else None,
     }, None
 
 
@@ -342,12 +370,7 @@ def validate_ocr_payload_with_cache(payload):
 
     if ocr_amount is None:
         return None, "I could not detect the receipt amount. Please upload a clearer receipt."
-    if abs(float(amount) - float(ocr_amount)) > 0.01:
-        return None, (
-            "Claim amount does not match receipt amount.\n\n"
-            f"Claimed Amount: ₹{money(amount)}\n"
-            f"Receipt Amount: ₹{money(ocr_amount)}"
-        )
+    amount_validation_required = abs(float(amount) - float(ocr_amount)) > 0.01
 
     if not bill_date:
         return None, "I could not detect the receipt date. Please upload a clearer receipt."
@@ -366,6 +389,7 @@ def validate_ocr_payload_with_cache(payload):
         "bill_date": bill_date.isoformat(),
         "invoice_number": invoice_number,
         "vendor_name": ocr_fields.get("vendor_name"),
+        "amount_validation_required": "true" if amount_validation_required else None,
     }, None
 
 
@@ -411,6 +435,7 @@ def validate_expense_payload(payload, perform_ocr=False):
         "bill_date": ocr_fields.get("bill_date"),
         "invoice_number": ocr_fields.get("invoice_number"),
         "vendor_name": ocr_fields.get("vendor_name"),
+        "amount_validation_required": ocr_fields.get("amount_validation_required"),
     }, None
 
 
@@ -419,6 +444,7 @@ def handle_apply_expense(employee_id, employee_name, ai_result, user_message="",
     current_step = workflow.get("step") if workflow else None
     payload = merge_expense_payload(workflow.get("payload") if workflow else {}, ai_result, user_message, current_step)
     payload = merge_expense_step_reply(payload, current_step, user_message)
+    claimed_amount_from_message = infer_amount_from_message(user_message)
 
     if receipt_filename:
         payload["receipt_filename"] = receipt_filename
@@ -433,6 +459,8 @@ def handle_apply_expense(employee_id, employee_name, ai_result, user_message="",
                 return json_reply(ocr_error)
             if ocr_fields:
                 payload.update({key: value for key, value in ocr_fields.items() if value is not None})
+        if claimed_amount_from_message:
+            payload["amount"] = str(claimed_amount_from_message)
 
     normalized_type = normalize_expense_type(payload.get("expense_type"))
     if normalized_type:
@@ -485,4 +513,9 @@ def handle_confirm_expense(employee_id, employee_name):
     ).execute()
 
     finish_workflow(workflow["id"])
+    if valid_payload.get("amount_validation_required"):
+        return json_reply(
+            f"{employee_name}, your reimbursement request has been sent to manager review for ₹{money(valid_payload['amount'])}.\n"
+            f"OCR read ₹{money(valid_payload['ocr_amount'])}, so the manager will validate the bill amount before approval."
+        )
     return json_reply(f"{employee_name}, your reimbursement request has been submitted for manager approval.")

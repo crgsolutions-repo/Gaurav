@@ -1,0 +1,12 @@
+Conversational QA Summary
+=========================
+Generated: 2026-06-06T11:45:13.579990+00:00
+Scenarios executed: 50
+Total requests: 76
+Passed: 76
+Failed: 0
+Suspicious responses: 0
+Effective delay: 6.0 seconds
+
+Common failure categories:
+- None

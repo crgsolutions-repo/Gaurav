@@ -27,8 +27,17 @@ class Config:
     FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY")
     SUPABASE_URL = os.getenv("SUPABASE_URL")
     SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+    SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
     GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
+    GEMINI_EMBEDDING_MODEL = os.getenv("GEMINI_EMBEDDING_MODEL", "models/gemini-embedding-001")
+    GEMINI_EMBEDDING_DIMENSION = int(os.getenv("GEMINI_EMBEDDING_DIMENSION", "768"))
+    GEMINI_TIMEOUT_SECONDS = float(os.getenv("GEMINI_TIMEOUT_SECONDS", "30"))
+    GEMINI_PLANNER_ENABLED = os.getenv("GEMINI_PLANNER_ENABLED", "true").strip().lower() in {"1", "true", "yes", "on"}
+    RAG_ENABLED = os.getenv("RAG_ENABLED", "true").strip().lower() in {"1", "true", "yes", "on"}
+    POLICY_SOURCE_DIR = os.getenv("POLICY_SOURCE_DIR", str(BASE_DIR / "policies" / "source"))
+    HR_CONTACT_EMAIL = os.getenv("HR_CONTACT_EMAIL")
+    HR_CONTACT_CHANNEL = os.getenv("HR_CONTACT_CHANNEL")
     TESSERACT_EXE_PATH = os.getenv(
         "TESSERACT_EXE_PATH",
         str(BASE_DIR / "Tesseract-OCR" / "tesseract.exe"),
