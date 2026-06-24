@@ -1403,3 +1403,13 @@ Added the first policy-grounded HR copilot foundation, repaired monthly leave-hi
 * The script commits and pushes changed project files to `origin/main`, skips `.env` and uploads via `.gitignore`, creates no commit when unchanged, and logs push failures without automatic pulls or merges.
 * Verified script dry run without committing or pushing current work.
 * Created active Codex automation `daily-hr-chatbot-github-sync` to run daily at 8 PM local time.
+
+---
+
+# Session Update - Daily GitHub Sync Schedule
+
+## Automation
+
+* Changed the active daily GitHub sync automation to 6 PM local time.
+* Added `tools/run_github_sync.bat` for immediate manual synchronization without waiting for the schedule.
+* Ran the first live synchronization successfully and pushed the project to `origin/main`.
