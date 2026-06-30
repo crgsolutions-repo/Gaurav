@@ -4,10 +4,6 @@ const dateInput = document.getElementById("date-input");
 const receiptInput = document.getElementById("receipt-input");
 const chatBox = document.getElementById("chat-box");
 
-if (dateInput) {
-    dateInput.min = new Date().toISOString().slice(0, 10);
-}
-
 function appendMessage(sender, text, variant = "") {
     const wrapper = document.createElement("div");
     wrapper.className = `message ${sender.toLowerCase()} ${variant}`.trim();

@@ -1413,3 +1413,162 @@ Added the first policy-grounded HR copilot foundation, repaired monthly leave-hi
 * Changed the active daily GitHub sync automation to 6 PM local time.
 * Added `tools/run_github_sync.bat` for immediate manual synchronization without waiting for the schedule.
 * Ran the first live synchronization successfully and pushed the project to `origin/main`.
+
+---
+
+# Session Update - Attendance Module Refactor And Correction Workflow
+
+## Completed
+
+* Added `attendance_service.py` for attendance date parsing, monthly/range/all-history summaries, metrics, comparisons, correction requests, and manager team attendance queries.
+* Expanded attendance understanding for today, yesterday, day before yesterday, last weekdays, this/last week, this/last month, named months, explicit dates, explicit ranges, and complete history.
+* Added attendance metrics for present, absent, leave, half day, late arrivals, early departures, overtime hours, worked hours, and attendance percentage.
+* Added formal attendance correction workflow where employee requests remain pending until manager approval updates the attendance record.
+* Added manager attendance correction dashboard/routes, approval/rejection handling, notification badge support, and route-level approval coverage.
+* Extended the Gemini planner schema and fallback routing for structured attendance actions, manager team queries, correction status, and correction workflows.
+* Removed the frontend date-picker minimum so past, present, and future dates can be selected.
+* Fixed correction phrasing such as `I forgot to punch out yesterday` so it starts an attendance correction instead of direct punch-out.
+
+## Tests And Verification
+
+* Full compile check passed.
+* Full unit suite passed with 116 tests.
+* Targeted attendance conversational stress passed 19 scenarios with 0 failures.
+* Verified manager attendance correction rendering, approval, rejection, date parsing, attendance comparisons, metrics, and correction interruption/resume/cancel behavior.
+
+## Schema Changes
+
+* `schema.sql` now includes attendance metric columns and the `attendance_correction_requests` table.
+
+## Known Limitations
+
+* Attendance reporting does not yet model company holidays, weekly offs, or shift calendars, so range percentages treat calendar days as reportable days.
+* The employee-facing calendar remains basic; the richer manager correction dashboard is implemented first.
+
+---
+
+# Session Update - Attendance UAT Routing And Workflow Fixes
+
+## Bugs Fixed
+
+* Normal punch actions such as `Punch me in`, `Check me in`, `Start my day`, and `Punch me out` now perform direct punch actions and do not start attendance correction workflows.
+* Added planner-action sanitization so incorrect Gemini plans cannot turn obvious punch actions or attendance queries into correction workflows.
+* Attendance queries such as `Was I present day before yesterday?` now return attendance status instead of correction prompts.
+* Attendance correction requests now keep relative dates such as `yesterday` correctly and allow pending punch-in/punch-out values to be edited before confirmation.
+* Correction confirmation now returns a controlled schema-readiness error instead of a frontend failure if the live database is missing correction columns.
+* Attendance metric questions now return concise metric answers instead of full daily breakdowns.
+* Attendance metric comparison follow-ups such as `Compare it with last month` now stay in attendance context instead of routing to expenses.
+
+## Tests And Verification
+
+* Added regression tests for the UAT transcripts covering punch routing, bad planner correction collisions, attendance query routing, correction edit/confirm, metric-only answers, and attendance comparison follow-ups.
+* Full compile check passed.
+* Full unit suite passed with 122 tests.
+* Targeted attendance stress passed 20 scenarios with 0 failures.
+
+## Known Limitations
+
+* Gemini remains the preferred planner, but deterministic punch fallbacks still handle planner outages or empty planner responses for demo reliability.
+
+---
+
+# Session Update - Punch Action Duplicate Attendance Fix
+
+## Bugs Fixed
+
+* Direct punch commands no longer append accidental attendance reports when Gemini/planner returns both `PUNCH_IN` or `PUNCH_OUT` and `GET_ATTENDANCE`.
+* One-day attendance ranges now render as a normal single-day attendance response instead of `attendance from X to X for X to X`.
+
+## Tests And Verification
+
+* Added regression tests for bad planner punch-plus-attendance output and single-day range formatting.
+* Full compile check passed.
+* Full unit suite passed with 124 tests.
+* UAT transcript guard for `punch me in` with accidental extra attendance action passed with 0 failures.
+
+---
+
+# Session Update - Today Attendance Vs Correction Routing Fix
+
+## Bugs Fixed
+
+* Today/no-date present phrases such as `present`, `mark me present today`, and `mark my attendance` now route to direct punch-in instead of attendance correction.
+* Past-date present phrases such as `mark me present yesterday` still start the attendance correction workflow.
+* Direct `punch out` now overrides and cancels an accidental active attendance correction workflow before recording punch-out.
+* How-to attendance questions now return attendance guidance instead of starting correction or showing monthly attendance history.
+
+## Tests And Verification
+
+* Added regression tests for present/today attendance marking, past-date correction, punch-out over active correction, and how-to guidance.
+* Full compile check passed.
+* Full unit suite passed with 128 tests.
+* Targeted UAT stress passed 6 transcript cases with 0 failures.
+
+---
+
+# Session Update - Leaving Office Punch-Out Routing Fix
+
+## Bugs Fixed
+
+* Phrases such as `leaving office now`, `leaving now`, and `done for the day` now route to direct punch-out.
+* Bad planner output that combines `GET_ATTENDANCE` with punch-out is sanitized so the bot does not append an attendance report.
+
+## Tests And Verification
+
+* Added regression coverage for `leaving office now` with accidental planner attendance output.
+* Full compile check passed.
+* Full unit suite passed with 129 tests.
+* In-process UAT check returned only punch-out confirmation with no attendance report.
+
+---
+
+# Session Update - Attendance Follow-Up And Absent-Date Query Fixes
+
+## Bugs Fixed
+
+* Plain `thank you` now closes the conversation before topic follow-up prompts such as attendance history suggestions.
+* Common weekday typo `thrusday` is normalized to Thursday for attendance date parsing.
+* Absent-date retrieval such as `on which dates i was absent from 1st of june to 15th june` now returns only absent dates for the requested range instead of full monthly attendance or leave advice.
+
+## Tests And Verification
+
+* Added regression tests for thank-you closure, typo weekday parsing, and absent-date range retrieval.
+* Full compile check passed.
+* Full unit suite passed with 132 tests.
+* Targeted UAT phrase check passed 3 scenarios with 0 failures.
+
+---
+
+# Session Update - Forgot Mark Attendance Correction Fix
+
+## Bugs Fixed
+
+* `forgot to mark my attendance` and similar past-date phrases now start attendance correction instead of direct punch-in.
+* Correction payloads now accept Gemini `attendance_date` entities directly.
+* Time parsing now ignores date strings such as `2026-06-25`, preventing date fragments from becoming fake punch times.
+* Gemini planner instructions now explicitly classify missed/forgotten attendance marking as attendance correction.
+
+## Tests And Verification
+
+* Added regression tests for `hey i forgot to mark my attendance last thrusday 2026-06-25`, `i forgot to mark my attendance last wednesday`, and Gemini attendance-date entity handling.
+* Full compile check passed.
+* Full unit suite passed with 134 tests.
+* Targeted UAT phrase check passed 2 scenarios with 0 failures.
+
+---
+
+# Session Update - Intent Debug Overlay
+
+## Completed
+
+* Added `INTENT_DEBUG_ENABLED` config for testing-only visible intent labels in chatbot replies.
+* Chat responses now append labels such as `[Intent: PUNCH_IN]`, `[Intent: GET_ATTENDANCE]`, or `[Intent: APPLY_ATTENDANCE_CORRECTION]` when debug mode is enabled.
+* Multi-action planner responses combine labels, for example `[Intent: PUNCH_IN + APPLY_LEAVE]`.
+* Added fallback intent labels for common advisory/retrieval paths so non-planner responses still show useful debug intent.
+
+## Tests And Verification
+
+* Added regression coverage for showing and hiding intent debug markers.
+* Full compile check passed.
+* Full unit suite passed with 135 tests.
+* In-process checks verified punch-in, attendance retrieval, and attendance correction intent labels.

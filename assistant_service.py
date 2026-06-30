@@ -6,6 +6,7 @@ from datetime import date, datetime, timedelta
 from dateutil import parser as date_parser
 from flask import has_request_context, jsonify, session
 
+import attendance_service as attendance_module
 from config import Config
 from intent_handlers import calculate_leave_days, format_leave_amount, parse_hr_date
 from payroll_service import (
@@ -131,6 +132,45 @@ def is_explicit_resume_message(message):
 
 def attendance_action(message):
     text = normalized(message)
+    if re.search(r"\b(how|explain|process|guide|steps|policy)\b", text):
+        return None
+    correction_phrases = (
+        "forgot to punch in",
+        "forgot punch in",
+        "forgot to punch out",
+        "forgot punch out",
+        "forgot to mark attendance",
+        "forgot to mark my attendance",
+        "forgot mark attendance",
+        "forgot mark my attendance",
+        "missed attendance",
+        "missed my attendance",
+        "attendance correction",
+        "correct my attendance",
+        "fix my attendance",
+        "attendance is incorrect",
+        "incorrect attendance",
+        "worked yesterday from",
+        "i worked yesterday from",
+    )
+    if any(phrase in text for phrase in correction_phrases):
+        return None
+    if any(
+        phrase in text
+        for phrase in (
+            "punch in time",
+            "punch-in time",
+            "punch out time",
+            "punch-out time",
+            "make punch in",
+            "make punch out",
+            "set punch in",
+            "set punch out",
+            "change punch in",
+            "change punch out",
+        )
+    ):
+        return None
     status_words = (
         "did you",
         "did i",
@@ -143,9 +183,50 @@ def attendance_action(message):
     )
     if any(text.startswith(prefix) for prefix in status_words):
         return None
-    if any(phrase in text for phrase in ("punch me in", "punch in", "clock me in", "clock in", "mark me present", "mark attendance")):
+    if "mark attendance" in text and any(token in text for token in ("yesterday", "day before", "last ", " for ", " on ")):
+        return None
+    if "mark me present" in text and any(token in text for token in ("yesterday", "day before", "last ", " for ", " on ")):
+        return None
+    if text in {"present", "i am present", "im present", "i am in office", "i am at office"}:
         return "PUNCH_IN"
-    if any(phrase in text for phrase in ("punch me out", "punch out", "clock me out", "clock out")):
+    if any(
+        phrase in text
+        for phrase in (
+            "punch me in",
+            "punch in",
+            "clock me in",
+            "clock in",
+            "check me in",
+            "check in",
+            "start my day",
+            "start my shift",
+            "mark attendance",
+            "mark my attendance",
+            "mark me present today",
+            "mark present today",
+            "present today",
+        )
+    ):
+        return "PUNCH_IN"
+    if any(
+        phrase in text
+        for phrase in (
+            "punch me out",
+            "punch out",
+            "clock me out",
+            "clock out",
+            "check me out",
+            "check out",
+            "end my day",
+            "end my shift",
+            "leaving office",
+            "leaving office now",
+            "leaving now",
+            "leaving for the day",
+            "done for the day",
+            "done with work",
+        )
+    ):
         return "PUNCH_OUT"
     return None
 
@@ -584,11 +665,14 @@ def payslip_process_response():
 
 def attendance_process_response():
     return (
+        "For today's attendance:\n"
+        "1. Say: Punch me in, Check me in, Start my day, or Mark my attendance.\n"
+        "2. To end the day, say: Punch me out or Check me out.\n\n"
         "To view attendance:\n"
         "1. Ask for attendance history, this month's attendance, or a specific date.\n"
         "2. I will check attendance records and approved leave records.\n"
         "3. I will show whether you were Present, Absent, on Leave, or on Half Day Leave.\n\n"
-        "Try: Show attendance for this month."
+        "For past-date mistakes, say something like: I forgot to punch out yesterday."
     )
 
 
@@ -1492,6 +1576,8 @@ def smart_followup_response(message):
     topic = session.get("last_hr_topic") if has_request_context() else None
     if topic == "leave_history" and re.fullmatch(r"(?:in\s+)?(?:" + "|".join(MONTH_NAMES) + r")(?:\s+\d{4})?", followup_text):
         return "__LEAVE_HISTORY_MONTH_FOLLOWUP__"
+    if topic == "attendance" and "compare" in text:
+        return "__ATTENDANCE_COMPARISON_FOLLOWUP__"
     if topic == "attendance" and followup_text in {"attendance log", "attendance logs", "check log", "check logs", "log", "logs"}:
         return "__ATTENDANCE_LOG_FOLLOWUP__"
     if text not in {"ok", "okay", "okok", "thanks", "thank you", "hmm"}:
@@ -1520,16 +1606,18 @@ def set_topic(topic):
 def handle_advisory_message(employee_id, employee_name, message):
     text = normalized(message)
 
+    if is_conversation_close_message(message):
+        return json_reply("You're welcome. Take care, and message me whenever you need HR help.")
+
     followup = smart_followup_response(message)
     if followup == "__LEAVE_HISTORY_MONTH_FOLLOWUP__":
         return json_reply(leave_history_period_response(employee_id, employee_name, f"Did I take leave {message}?"))
+    if followup == "__ATTENDANCE_COMPARISON_FOLLOWUP__":
+        return json_reply(attendance_response(employee_id, employee_name, f"attendance {message}"))
     if followup == "__ATTENDANCE_LOG_FOLLOWUP__":
         return json_reply(attendance_response(employee_id, employee_name, "attendance this month"))
     if followup:
         return json_reply(followup)
-
-    if is_conversation_close_message(message):
-        return json_reply("You're welcome. Take care, and message me whenever you need HR help.")
 
     if is_hr_contact_message(message):
         set_topic("hr_contact")
@@ -1552,6 +1640,14 @@ def handle_advisory_message(employee_id, employee_name, message):
         set_topic("leave_balance")
         return json_reply(format_leave_balance(employee_id, employee_name))
 
+    if attendance_module.is_attendance_comparison_message(message):
+        set_topic("attendance")
+        return json_reply(attendance_response(employee_id, employee_name, message))
+
+    if attendance_module.is_absent_dates_query(message):
+        set_topic("attendance")
+        return json_reply(attendance_response(employee_id, employee_name, message))
+
     guidance = guidance_response(message)
     if guidance:
         if "expense" in text or "reimbursement" in text or "claim" in text:
@@ -1572,6 +1668,14 @@ def handle_advisory_message(employee_id, employee_name, message):
     if insight:
         set_topic("payroll")
         return json_reply(insight)
+
+    if is_attendance_correction_status_message(message):
+        set_topic("attendance")
+        return json_reply(attendance_correction_status_response(employee_id, employee_name, message))
+
+    if is_attendance_correction_message(message):
+        set_topic("attendance_correction")
+        return handle_apply_attendance_correction(employee_id, employee_name, {}, message)
 
     recommendation = recommendation_response(employee_id, employee_name, message)
     if recommendation:
@@ -1599,3 +1703,79 @@ def handle_advisory_message(employee_id, employee_name, message):
             return json_reply(format_expense_requests(employee_id, message))
 
     return None
+
+
+def _sync_attendance_service():
+    attendance_module.supabase = supabase
+
+
+def attendance_month_range(message):
+    _sync_attendance_service()
+    period = attendance_module.attendance_period(message)
+    if period and period.start and period.end:
+        return period.start, period.end
+    today = date.today()
+    return today.replace(day=1), today
+
+
+def named_month_ranges(message):
+    _sync_attendance_service()
+    return attendance_module.named_month_ranges(message)
+
+
+def attendance_specific_date(message):
+    _sync_attendance_service()
+    period = attendance_module.extract_specific_date(message)
+    return period.start if period else None
+
+
+def attendance_status_for_date(employee_id, target):
+    _sync_attendance_service()
+    return attendance_module.attendance_status_for_date(employee_id, target)
+
+
+def attendance_counts_for_range(employee_id, start, end):
+    _sync_attendance_service()
+    return attendance_module.attendance_counts_for_range(employee_id, start, end)
+
+
+def compare_attendance_response(employee_id, employee_name, message):
+    _sync_attendance_service()
+    return attendance_module.compare_attendance_response(employee_id, employee_name, message)
+
+
+def latest_attendance_record_response(employee_id, employee_name):
+    _sync_attendance_service()
+    return attendance_module.latest_attendance_record_response(employee_id, employee_name)
+
+
+def attendance_response(employee_id, employee_name, message):
+    _sync_attendance_service()
+    return attendance_module.attendance_response(employee_id, employee_name, message)
+
+
+def is_attendance_message(message):
+    return attendance_module.is_attendance_message(message)
+
+
+def attendance_correction_response(employee_id):
+    _sync_attendance_service()
+    return attendance_module.attendance_correction_status_response(employee_id, "Employee", "show pending correction requests")
+
+
+def is_attendance_correction_message(message):
+    return attendance_module.is_attendance_correction_message(message)
+
+
+def is_attendance_correction_status_message(message):
+    return attendance_module.is_attendance_correction_status_message(message)
+
+
+def attendance_correction_status_response(employee_id, employee_name, message):
+    _sync_attendance_service()
+    return attendance_module.attendance_correction_status_response(employee_id, employee_name, message)
+
+
+def handle_apply_attendance_correction(employee_id, employee_name, entities=None, user_message=""):
+    _sync_attendance_service()
+    return attendance_module.handle_apply_attendance_correction(employee_id, employee_name, entities or {}, user_message)

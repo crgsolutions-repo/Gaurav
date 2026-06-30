@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Attendance Corrections | HR Assistant</title>
+</head>
+<body>
+    <main class="manager-shell">
+        <header class="manager-header">
+            <div>
+                <p class="eyebrow">Manager Workspace</p>
+                <h1>Attendance Corrections</h1>
+            </div>
+            <a class="secondary-link" href="/">Back to Chat</a>
+        </header>
+
+        <section class="manager-tools">
+            <nav class="manager-tabs" aria-label="Attendance correction views">
+                <a class="tab-link {% if active_view == 'pending' %}active{% endif %}" href="/manager/attendance">
+                    Pending
+                    <span>{{ pending_count }}</span>
+                </a>
+                <a class="tab-link {% if active_view == 'approved' %}active{% endif %}" href="/manager/attendance?view=approved">
+                    Approved
+                    <span>{{ approved_count }}</span>
+                </a>
+                <a class="tab-link {% if active_view == 'rejected' %}active{% endif %}" href="/manager/attendance?view=rejected">
+                    Rejected
+                    <span>{{ rejected_count }}</span>
+                </a>
+            </nav>
+        </section>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <section class="flash-list" aria-live="polite">
+                {% for category, message in messages %}
+                <p class="flash-message {{ category }}">{{ message }}</p>
+                {% endfor %}
+            </section>
+            {% endif %}
+        {% endwith %}
+
+        <section class="approval-list">
+            {% if corrections %}
+                {% for correction in corrections %}
+                <article class="approval-card {% if correction._is_new %}new{% endif %}">
+                    <div>
+                        <p class="eyebrow">Correction #{{ correction.id }}</p>
+                        <h2>{{ correction.correction_type|replace("_", " ")|title }}</h2>
+                        <p class="muted">
+                            {{ correction.employee_name }}
+                            {% if correction._is_new %}
+                            <span class="new-tag">New</span>
+                            {% endif %}
+                        </p>
+                    </div>
+
+                    <dl>
+                        <div>
+                            <dt>Date</dt>
+                            <dd>{{ correction.attendance_date }}</dd>
+                        </div>
+                        <div>
+                            <dt>Requested Punch In</dt>
+                            <dd>{{ correction.requested_punch_in or "Not requested" }}</dd>
+                        </div>
+                        <div>
+                            <dt>Requested Punch Out</dt>
+                            <dd>{{ correction.requested_punch_out or "Not requested" }}</dd>
+                        </div>
+                        <div>
+                            <dt>Reason</dt>
+                            <dd>{{ correction.reason }}</dd>
+                        </div>
+                        {% if correction.manager_comments %}
+                        <div>
+                            <dt>Manager Comments</dt>
+                            <dd>{{ correction.manager_comments }}</dd>
+                        </div>
+                        {% endif %}
+                    </dl>
+
+                    {% if active_view == "pending" %}
+                    <div class="approval-actions">
+                        <form class="approve-form" action="/manager/attendance/{{ correction.id }}/approve" method="POST">
+                            <label class="reject-reason">
+                                Approval comments
+                                <textarea name="comments" rows="2" placeholder="Optional manager comments"></textarea>
+                            </label>
+                            <button type="submit">Approve & Update Attendance</button>
+                        </form>
+                        <form class="reject-form" action="/manager/attendance/{{ correction.id }}/reject" method="POST">
+                            <label class="reject-reason">
+                                Rejection reason
+                                <textarea name="reason" rows="2" placeholder="Explain the business or policy reason" required></textarea>
+                            </label>
+                            <button type="submit" class="danger">Reject</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </article>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <h2>No {{ active_view }} attendance corrections</h2>
+                    <p class="muted">
+                        {% if active_view == "pending" %}
+                        New attendance correction requests will appear here for manager review.
+                        {% else %}
+                        Processed attendance correction requests will appear here.
+                        {% endif %}
+                    </p>
+                </div>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>

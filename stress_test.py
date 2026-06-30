@@ -278,6 +278,7 @@ class MemoryDatabase:
             ],
             "conversation_workflows": [],
             "conversations": [],
+            "attendance_correction_requests": [],
         }
 
     def reset(self):
@@ -328,6 +329,7 @@ class InProcessTransport:
     def __init__(self, employee_id, employee_name, role):
         import app as app_module
         import assistant_service
+        import attendance_service
         import expense_service
         import intent_handlers
         import manager_approval
@@ -346,6 +348,7 @@ class InProcessTransport:
             patch.object(app_module, "plan_conversation", return_value=None),
             patch.object(app_module, "generate_copilot_response", side_effect=offline_copilot),
             patch.object(assistant_service, "supabase", self.database),
+            patch.object(attendance_service, "supabase", self.database),
             patch.object(expense_service, "supabase", self.database),
             patch.object(intent_handlers, "supabase", self.database),
             patch.object(manager_approval, "supabase", self.database),

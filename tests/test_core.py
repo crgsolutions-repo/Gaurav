@@ -17,6 +17,7 @@ os.environ.setdefault("GEMINI_PLANNER_ENABLED", "false")
 
 import intent_handlers
 import assistant_service
+import attendance_service
 import expense_service
 import manager_expenses
 import manager_approval
@@ -1826,7 +1827,7 @@ class CoreStabilizationTests(unittest.TestCase):
         self.assertIn("sorry", reply.lower())
         self.assertIn("Bereavement Leave", reply)
 
-    def test_forgot_punch_out_gives_correction_guidance(self):
+    def test_forgot_punch_out_starts_correction_workflow(self):
         yesterday = date.today() - timedelta(days=1)
         fake = FakeSupabase(
             {
@@ -1836,12 +1837,19 @@ class CoreStabilizationTests(unittest.TestCase):
             }
         )
 
-        with patch.object(assistant_service, "supabase", fake):
+        def fake_upsert(_employee_id, _workflow_type, step, payload):
+            return {"id": "wf-attendance-1", "step": step, "payload": dict(payload)}
+
+        with (
+            patch.object(assistant_service, "supabase", fake),
+            patch.object(attendance_service, "get_active_workflow", return_value=None),
+            patch.object(attendance_service, "upsert_workflow", side_effect=fake_upsert),
+        ):
             response, _ = assistant_service.handle_advisory_message("EMP101", "Gaurav", "I forgot to punch out yesterday")
 
         reply = response.get_json()["reply"]
-        self.assertIn("incomplete attendance record", reply)
         self.assertIn("correction", reply)
+        self.assertIn("punch-out time", reply)
 
     def test_recommendation_uses_reimbursement_history(self):
         fake = FakeSupabase(
@@ -2531,6 +2539,697 @@ Service 812.00
         self.assertEqual(status, 200)
         self.assertIn("punch in has been recorded", response.lower())
         self.assertIn("which leave type", response.lower())
+
+    def test_attendance_last_weekday_returns_single_day(self):
+        today = date.today()
+        target = today - timedelta(days=(today.weekday() - 0) % 7 or 7)
+        fake = FakeSupabase(
+            {
+                "attendance": [
+                    {
+                        "employee_id": "EMP101",
+                        "date": target.isoformat(),
+                        "status": "Present",
+                        "punch_in": "09:20:00",
+                        "punch_out": "18:40:00",
+                    }
+                ],
+                "leave_requests": [],
+            }
+        )
+
+        with patch.object(assistant_service, "supabase", fake):
+            response, _ = assistant_service.handle_advisory_message("EMP101", "Gaurav", "Show attendance for last Monday")
+
+        reply = response.get_json()["reply"]
+        self.assertIn(f"attendance for {target.isoformat()}", reply)
+        self.assertIn("Present", reply)
+        self.assertNotIn("Daily breakdown", reply)
+
+    def test_attendance_day_before_yesterday_and_range_queries(self):
+        day_before_yesterday = date.today() - timedelta(days=2)
+        start = date.today() - timedelta(days=4)
+        end = date.today() - timedelta(days=2)
+        fake = FakeSupabase(
+            {
+                "attendance": [
+                    {"employee_id": "EMP101", "date": day_before_yesterday.isoformat(), "status": "Present", "punch_in": "10:00:00", "punch_out": "18:00:00"},
+                    {"employee_id": "EMP101", "date": start.isoformat(), "status": "Present", "punch_in": "09:00:00", "punch_out": "19:00:00"},
+                ],
+                "leave_requests": [],
+            }
+        )
+
+        with patch.object(assistant_service, "supabase", fake):
+            single_response, _ = assistant_service.handle_advisory_message(
+                "EMP101", "Gaurav", "Was I present day before yesterday?"
+            )
+            range_response, _ = assistant_service.handle_advisory_message(
+                "EMP101", "Gaurav", f"Show attendance from {start.isoformat()} to {end.isoformat()}"
+            )
+
+        self.assertIn(day_before_yesterday.isoformat(), single_response.get_json()["reply"])
+        self.assertIn("Daily breakdown", range_response.get_json()["reply"])
+        self.assertIn(start.isoformat(), range_response.get_json()["reply"])
+        self.assertIn(end.isoformat(), range_response.get_json()["reply"])
+
+    def test_attendance_typo_last_thrusday_resolves_to_last_thursday(self):
+        today = date.today()
+        target = today - timedelta(days=(today.weekday() - 3) % 7 or 7)
+        fake = FakeSupabase(
+            {
+                "attendance": [
+                    {
+                        "employee_id": "EMP101",
+                        "date": target.isoformat(),
+                        "status": "Present",
+                        "punch_in": "09:30:00",
+                        "punch_out": "18:30:00",
+                    }
+                ],
+                "leave_requests": [],
+            }
+        )
+
+        with patch.object(attendance_service, "supabase", fake):
+            reply = attendance_service.attendance_response("EMP101", "Gaurav", "was i present on last thrusday")
+
+        self.assertIn(f"attendance for {target.isoformat()}", reply)
+        self.assertIn("Present", reply)
+
+    def test_absent_dates_range_returns_only_absent_dates(self):
+        fake = FakeSupabase(
+            {
+                "attendance": [
+                    {"employee_id": "EMP101", "date": "2026-06-01", "status": "Present", "punch_in": "09:00:00", "punch_out": "18:00:00"},
+                    {"employee_id": "EMP101", "date": "2026-06-03", "status": "Present", "punch_in": "09:00:00", "punch_out": "18:00:00"},
+                ],
+                "leave_requests": [],
+            }
+        )
+
+        with patch.object(attendance_service, "supabase", fake):
+            reply = attendance_service.attendance_response(
+                "EMP101",
+                "Gaurav",
+                "on which dates i was absent from 1st of june to 5th june",
+            )
+
+        self.assertIn("absent dates from 2026-06-01 to 2026-06-05", reply)
+        self.assertIn("2026-06-02", reply)
+        self.assertIn("2026-06-04", reply)
+        self.assertIn("2026-06-05", reply)
+        self.assertNotIn("Daily breakdown", reply)
+
+    def test_monthly_attendance_includes_complete_breakdown_and_metrics(self):
+        fake = FakeSupabase(
+            {
+                "attendance": [
+                    {"employee_id": "EMP101", "date": "2026-06-01", "status": "Present", "punch_in": "10:00:00", "punch_out": "18:00:00"},
+                    {"employee_id": "EMP101", "date": "2026-06-02", "status": "Present", "punch_in": "09:00:00", "punch_out": "13:00:00"},
+                    {"employee_id": "EMP101", "date": "2026-06-03", "status": "Present", "punch_in": "09:00:00", "punch_out": "20:00:00"},
+                ],
+                "leave_requests": [
+                    {"employee_id": "EMP101", "from_date": "2026-06-04", "to_date": "2026-06-04", "status": "Approved"}
+                ],
+            }
+        )
+
+        with patch.object(assistant_service, "supabase", fake):
+            response, _ = assistant_service.handle_advisory_message("EMP101", "Gaurav", "Show attendance for June")
+
+        reply = response.get_json()["reply"]
+        self.assertIn("Daily breakdown", reply)
+        self.assertIn("Late Arrivals: 1", reply)
+        self.assertIn("Early Departures: 2", reply)
+        self.assertIn("Overtime Hours: 2.00", reply)
+        self.assertIn("2026-06-04 : Leave", reply)
+
+    def test_show_all_attendance_returns_complete_history(self):
+        fake = FakeSupabase(
+            {
+                "attendance": [
+                    {"employee_id": "EMP101", "date": "2026-05-01", "status": "Present", "punch_in": "09:00:00", "punch_out": "18:30:00"},
+                    {"employee_id": "EMP101", "date": "2026-06-01", "status": "Present", "punch_in": "09:05:00", "punch_out": "18:35:00"},
+                ],
+                "leave_requests": [],
+            }
+        )
+
+        with patch.object(assistant_service, "supabase", fake):
+            response, _ = assistant_service.handle_advisory_message("EMP101", "Gaurav", "Show all attendance")
+
+        reply = response.get_json()["reply"]
+        self.assertIn("complete attendance history", reply)
+        self.assertIn("2026-05-01", reply)
+        self.assertIn("2026-06-01", reply)
+
+    def test_attendance_comparison_this_month_vs_previous_month(self):
+        today = date.today()
+        previous_month_end = today.replace(day=1) - timedelta(days=1)
+        fake = FakeSupabase(
+            {
+                "attendance": [
+                    {"employee_id": "EMP101", "date": today.replace(day=1).isoformat(), "status": "Present", "punch_in": "09:00:00", "punch_out": "18:30:00"},
+                    {"employee_id": "EMP101", "date": previous_month_end.replace(day=2).isoformat(), "status": "Present", "punch_in": "10:00:00", "punch_out": "18:30:00"},
+                ],
+                "leave_requests": [],
+            }
+        )
+
+        with patch.object(assistant_service, "supabase", fake):
+            response, _ = assistant_service.handle_advisory_message(
+                "EMP101", "Gaurav", "How is my attendance this month compared to last month?"
+            )
+
+        reply = response.get_json()["reply"]
+        self.assertIn("attendance comparison", reply)
+        self.assertIn("Difference:", reply)
+        self.assertIn("Late arrivals changed", reply)
+
+    def test_attendance_performance_compared_to_previous_month(self):
+        today = date.today()
+        previous_month_end = today.replace(day=1) - timedelta(days=1)
+        fake = FakeSupabase(
+            {
+                "attendance": [
+                    {"employee_id": "EMP101", "date": today.replace(day=1).isoformat(), "status": "Present", "punch_in": "09:00:00", "punch_out": "18:30:00"},
+                    {"employee_id": "EMP101", "date": previous_month_end.replace(day=2).isoformat(), "status": "Present", "punch_in": "09:00:00", "punch_out": "18:30:00"},
+                ],
+                "leave_requests": [],
+            }
+        )
+
+        with patch.object(assistant_service, "supabase", fake):
+            response, _ = assistant_service.handle_advisory_message(
+                "EMP101", "Gaurav", "How did I perform compared to previous month?"
+            )
+
+        self.assertIn("attendance comparison", response.get_json()["reply"])
+
+    def test_attendance_correction_request_is_pending_until_manager_approval(self):
+        yesterday = date.today() - timedelta(days=1)
+        fake = FakeSupabase(
+            {
+                "employees": [{"employee_id": "EMP101", "name": "Gaurav", "manager_id": "MGR001"}],
+                "attendance": [],
+                "attendance_correction_requests": [],
+            }
+        )
+        workflow = {
+            "id": "wf-attendance-1",
+            "payload": {
+                "attendance_date": yesterday.isoformat(),
+                "correction_type": "worked_hours",
+                "punch_in": "09:30:00",
+                "punch_out": "18:30:00",
+                "reason": "I worked yesterday from 9:30 AM to 6:30 PM.",
+            },
+        }
+
+        with (
+            patch.object(attendance_service, "supabase", fake),
+            patch.object(attendance_service, "get_active_workflow", return_value=workflow),
+            patch.object(attendance_service, "finish_workflow"),
+        ):
+            response, _ = attendance_service.handle_confirm_attendance_correction("EMP101", "Gaurav")
+
+        self.assertIn("submitted for manager approval", response.get_json()["reply"])
+        self.assertEqual(fake.tables["attendance"], [])
+        self.assertEqual(fake.tables["attendance_correction_requests"][0]["status"], "Pending")
+
+        with app_module.app.test_request_context("/manager/attendance/1/approve", method="POST", data={"comments": "Approved"}):
+            session["role"] = "manager"
+            session["employee_id"] = "MGR001"
+            with patch.object(attendance_service, "supabase", fake):
+                attendance_service.approve_attendance_correction("1")
+
+        self.assertEqual(fake.tables["attendance_correction_requests"][0]["status"], "Approved")
+        self.assertEqual(fake.tables["attendance"][0]["date"], yesterday.isoformat())
+        self.assertEqual(fake.tables["attendance"][0]["worked_hours"], 9.0)
+
+    def test_manager_attendance_correction_routes_render_and_reject(self):
+        yesterday = date.today() - timedelta(days=1)
+        fake = FakeSupabase(
+            {
+                "employees": [{"employee_id": "EMP101", "name": "Gaurav", "manager_id": "MGR001"}],
+                "attendance_correction_requests": [
+                    {
+                        "id": "1",
+                        "employee_id": "EMP101",
+                        "manager_id": "MGR001",
+                        "attendance_date": yesterday.isoformat(),
+                        "requested_punch_in": "09:30:00",
+                        "requested_punch_out": "18:30:00",
+                        "correction_type": "worked_hours",
+                        "reason": "Worked full day",
+                        "status": "Pending",
+                    }
+                ],
+            }
+        )
+
+        with app_module.app.test_client() as client:
+            with client.session_transaction() as browser_session:
+                browser_session["employee_id"] = "MGR001"
+                browser_session["employee_name"] = "Rahul"
+                browser_session["role"] = "manager"
+
+            with patch.object(attendance_service, "supabase", fake):
+                page = client.get("/manager/attendance")
+                reject = client.post("/manager/attendance/1/reject", data={"reason": "Insufficient proof"})
+
+        self.assertEqual(page.status_code, 200)
+        self.assertIn(b"Attendance Corrections", page.data)
+        self.assertEqual(reject.status_code, 302)
+        self.assertEqual(fake.tables["attendance_correction_requests"][0]["status"], "Rejected")
+        self.assertEqual(fake.tables["attendance_correction_requests"][0]["manager_comments"], "Insufficient proof")
+
+    def test_manager_attendance_correction_route_approve_updates_attendance(self):
+        target = date.today() - timedelta(days=1)
+        fake = FakeSupabase(
+            {
+                "attendance_correction_requests": [
+                    {
+                        "id": "1",
+                        "employee_id": "EMP101",
+                        "manager_id": "MGR001",
+                        "attendance_date": target.isoformat(),
+                        "requested_punch_in": "09:20:00",
+                        "requested_punch_out": "18:45:00",
+                        "correction_type": "missing_punch_out",
+                        "reason": "Forgot to punch out",
+                        "status": "Pending",
+                    }
+                ],
+                "attendance": [],
+            }
+        )
+
+        with app_module.app.test_client() as client:
+            with client.session_transaction() as browser_session:
+                browser_session["employee_id"] = "MGR001"
+                browser_session["employee_name"] = "Rahul"
+                browser_session["role"] = "manager"
+
+            with patch.object(attendance_service, "supabase", fake):
+                approve = client.post("/manager/attendance/1/approve", data={"comments": "Verified"})
+
+        self.assertEqual(approve.status_code, 302)
+        self.assertEqual(fake.tables["attendance_correction_requests"][0]["status"], "Approved")
+        self.assertEqual(fake.tables["attendance_correction_requests"][0]["manager_comments"], "Verified")
+        self.assertEqual(len(fake.tables["attendance"]), 1)
+        self.assertEqual(fake.tables["attendance"][0]["date"], target.isoformat())
+        self.assertEqual(fake.tables["attendance"][0]["punch_out"], "18:45:00")
+
+    def test_attendance_correction_workflow_interrupt_resume_and_cancel(self):
+        transport = stress_test.InProcessTransport("EMP101", "QA Employee", "employee")
+        try:
+            transport.start_scenario({"name": "attendance_correction_lifecycle", "messages": []})
+            first_response, first_status = transport.send("I forgot to punch out yesterday")
+            salary_response, salary_status = transport.send("Show my salary")
+            resume_response, resume_status = transport.send("continue")
+            cancel_response, cancel_status = transport.send("cancel")
+            after_cancel_response, after_cancel_status = transport.send("Show my salary")
+        finally:
+            transport.close()
+
+        self.assertEqual(first_status, 200)
+        self.assertIn("punch-out time", first_response.lower())
+        self.assertEqual(salary_status, 200)
+        self.assertIn("continue your attendance correction request", salary_response.lower())
+        self.assertEqual(resume_status, 200)
+        self.assertIn("punch-out time", resume_response.lower())
+        self.assertEqual(cancel_status, 200)
+        self.assertIn("attendance correction request has been cancelled", cancel_response.lower())
+        self.assertEqual(after_cancel_status, 200)
+        self.assertNotIn("continue your attendance correction request", after_cancel_response.lower())
+
+    def test_normal_punch_actions_do_not_start_attendance_correction(self):
+        transport = stress_test.InProcessTransport("EMP101", "QA Employee", "employee")
+        try:
+            for message in ("Punch me in", "Check me in", "Start my day"):
+                transport.start_scenario({"name": f"normal_{message}", "messages": []})
+                response, status = transport.send(message)
+                self.assertEqual(status, 200)
+                self.assertNotIn("what needs correction", response.lower())
+                self.assertNotEqual(
+                    (transport.active_workflow() or {}).get("workflow_type"),
+                    attendance_service.ATTENDANCE_CORRECTION_WORKFLOW,
+                )
+
+            transport.start_scenario({"name": "normal_punch_out", "messages": []})
+            transport.send("Punch me in")
+            response, status = transport.send("Punch me out")
+        finally:
+            transport.close()
+
+        self.assertEqual(status, 200)
+        self.assertIn("punch out", response.lower())
+        self.assertNotIn("what needs correction", response.lower())
+
+    def test_intent_debug_marker_can_be_shown_and_hidden(self):
+        transport = stress_test.InProcessTransport("EMP101", "QA Employee", "employee")
+        try:
+            transport.start_scenario({"name": "intent_debug_on", "messages": []})
+            with patch.object(app_module.Config, "INTENT_DEBUG_ENABLED", True):
+                response, status = transport.send("punch me in")
+
+            transport.start_scenario({"name": "intent_debug_off", "messages": []})
+            with patch.object(app_module.Config, "INTENT_DEBUG_ENABLED", False):
+                hidden_response, hidden_status = transport.send("punch me in")
+        finally:
+            transport.close()
+
+        self.assertEqual(status, 200)
+        self.assertIn("[Intent: PUNCH_IN]", response)
+        self.assertEqual(hidden_status, 200)
+        self.assertNotIn("[Intent:", hidden_response)
+
+    def test_present_and_today_mark_attendance_are_direct_punch_in(self):
+        transport = stress_test.InProcessTransport("EMP101", "QA Employee", "employee")
+        try:
+            for message in ("present", "mark me present today", "mark my attendance"):
+                transport.start_scenario({"name": f"today_present_{message}", "messages": []})
+                response, status = transport.send(message)
+                workflow = transport.active_workflow()
+                self.assertEqual(status, 200)
+                self.assertIn("punch in", response.lower())
+                self.assertNotIn("what needs correction", response.lower())
+                self.assertIsNone(workflow)
+        finally:
+            transport.close()
+
+    def test_past_mark_present_starts_correction_but_today_does_not(self):
+        transport = stress_test.InProcessTransport("EMP101", "QA Employee", "employee")
+        try:
+            transport.start_scenario({"name": "past_mark_present", "messages": []})
+            response, status = transport.send("mark me present yesterday")
+            workflow = transport.active_workflow()
+        finally:
+            transport.close()
+
+        self.assertEqual(status, 200)
+        self.assertIn("attendance correction", response.lower())
+        self.assertEqual(workflow.get("workflow_type"), attendance_service.ATTENDANCE_CORRECTION_WORKFLOW)
+
+    def test_forgot_to_mark_attendance_past_date_starts_correction(self):
+        expected_last_thursday = date(2026, 6, 25)
+        expected_last_wednesday = date(2026, 6, 24)
+        transport = stress_test.InProcessTransport("EMP101", "QA Employee", "employee")
+        try:
+            transport.start_scenario({"name": "forgot_mark_attendance_thursday", "messages": []})
+            response, status = transport.send("hey i forgot to mark my attendance last thrusday 2026-06-25")
+            workflow = transport.active_workflow()
+
+            transport.start_scenario({"name": "forgot_mark_attendance_wednesday", "messages": []})
+            wednesday_response, wednesday_status = transport.send("i forgot to mark my attendance last wednesday")
+            wednesday_workflow = transport.active_workflow()
+        finally:
+            transport.close()
+
+        self.assertEqual(status, 200)
+        self.assertIn("punch-in time", response.lower())
+        self.assertEqual(workflow.get("workflow_type"), attendance_service.ATTENDANCE_CORRECTION_WORKFLOW)
+        self.assertEqual(workflow.get("payload", {}).get("attendance_date"), expected_last_thursday.isoformat())
+        self.assertEqual(workflow.get("payload", {}).get("correction_type"), "mark_present")
+        self.assertNotIn("punch in has been recorded", response.lower())
+
+        self.assertEqual(wednesday_status, 200)
+        self.assertIn("punch-in time", wednesday_response.lower())
+        self.assertEqual(wednesday_workflow.get("payload", {}).get("attendance_date"), expected_last_wednesday.isoformat())
+
+    def test_correction_payload_uses_gemini_attendance_date_entity(self):
+        payload = attendance_service.infer_correction_payload(
+            "I forgot to mark my attendance last Thursday",
+            entities={"attendance_date": "2026-06-25"},
+        )
+
+        self.assertEqual(payload["attendance_date"], "2026-06-25")
+        self.assertEqual(payload["correction_type"], "mark_present")
+        self.assertNotIn("punch_in", payload)
+        self.assertNotIn("punch_out", payload)
+
+    def test_punch_out_overrides_active_attendance_correction(self):
+        transport = stress_test.InProcessTransport("EMP101", "QA Employee", "employee")
+        try:
+            transport.start_scenario({"name": "punch_out_over_correction", "messages": []})
+            transport.send("punch in")
+            correction_response, correction_status = transport.send("mark me present yesterday")
+            response, status = transport.send("punch out")
+            workflow = transport.active_workflow()
+        finally:
+            transport.close()
+
+        self.assertEqual(correction_status, 200)
+        self.assertIn("attendance correction", correction_response.lower())
+        self.assertEqual(status, 200)
+        self.assertIn("punch out", response.lower())
+        self.assertNotIn("what needs correction", response.lower())
+        self.assertIsNone(workflow)
+
+    def test_how_to_mark_present_returns_guidance_not_correction(self):
+        transport = stress_test.InProcessTransport("EMP101", "QA Employee", "employee")
+        try:
+            transport.start_scenario({"name": "attendance_guidance", "messages": []})
+            response, status = transport.send("how do i give my todays present status that i am present in office")
+            workflow = transport.active_workflow()
+        finally:
+            transport.close()
+
+        self.assertEqual(status, 200)
+        self.assertIn("punch me in", response.lower())
+        self.assertNotIn("what needs correction", response.lower())
+        self.assertIsNone(workflow)
+
+    def test_thank_you_after_attendance_context_closes_conversation(self):
+        transport = stress_test.InProcessTransport("EMP101", "QA Employee", "employee")
+        try:
+            transport.start_scenario({"name": "thanks_after_attendance", "messages": []})
+            transport.send("was i present yesterday")
+            response, status = transport.send("thank you")
+        finally:
+            transport.close()
+
+        self.assertEqual(status, 200)
+        self.assertIn("take care", response.lower())
+        self.assertNotIn("attendance history", response.lower())
+
+    def test_bad_planner_correction_for_normal_punch_is_sanitized(self):
+        transport = stress_test.InProcessTransport("EMP101", "QA Employee", "employee")
+        try:
+            transport.start_scenario({"name": "bad_planner_punch", "messages": []})
+            bad_plan = {"actions": ["APPLY_ATTENDANCE_CORRECTION", "PUNCH_IN"], "entities": {}}
+            with patch.object(app_module, "plan_conversation", return_value=bad_plan), patch.object(
+                app_module.Config, "GEMINI_PLANNER_ENABLED", True
+            ):
+                response, status = transport.send("Punch me in")
+                workflow = transport.active_workflow()
+        finally:
+            transport.close()
+
+        self.assertEqual(status, 200)
+        self.assertIn("punch in has been recorded", response.lower())
+        self.assertNotIn("what needs correction", response.lower())
+        self.assertIsNone(workflow)
+
+    def test_bad_planner_attendance_append_for_normal_punch_is_sanitized(self):
+        transport = stress_test.InProcessTransport("EMP101", "QA Employee", "employee")
+        try:
+            transport.start_scenario({"name": "bad_planner_punch_append", "messages": []})
+            bad_plan = {
+                "actions": ["PUNCH_IN", "GET_ATTENDANCE"],
+                "entities": {"start_date": "2026-06-06", "end_date": "2026-06-06"},
+            }
+            with patch.object(app_module, "plan_conversation", return_value=bad_plan), patch.object(
+                app_module.Config, "GEMINI_PLANNER_ENABLED", True
+            ):
+                response, status = transport.send("Punch me in")
+                workflow = transport.active_workflow()
+        finally:
+            transport.close()
+
+        self.assertEqual(status, 200)
+        self.assertIn("punch in has been recorded", response.lower())
+        self.assertNotIn("Daily breakdown", response)
+        self.assertNotIn("attendance from", response.lower())
+        self.assertIsNone(workflow)
+
+    def test_leaving_office_now_is_punch_out_without_attendance_append(self):
+        transport = stress_test.InProcessTransport("EMP101", "QA Employee", "employee")
+        try:
+            transport.start_scenario({"name": "leaving_office_now", "messages": []})
+            transport.send("punch me in")
+            bad_plan = {
+                "actions": ["GET_ATTENDANCE", "PUNCH_OUT"],
+                "entities": {"start_date": "2026-06-11", "end_date": "2026-06-11"},
+            }
+            with patch.object(app_module, "plan_conversation", return_value=bad_plan), patch.object(
+                app_module.Config, "GEMINI_PLANNER_ENABLED", True
+            ):
+                response, status = transport.send("leaving office now")
+                workflow = transport.active_workflow()
+        finally:
+            transport.close()
+
+        self.assertEqual(status, 200)
+        self.assertIn("punch out", response.lower())
+        self.assertNotIn("Daily breakdown", response)
+        self.assertNotIn("attendance for", response.lower())
+        self.assertNotIn("attendance from", response.lower())
+        self.assertIsNone(workflow)
+
+    def test_bad_planner_correction_for_attendance_query_is_sanitized(self):
+        transport = stress_test.InProcessTransport("EMP101", "QA Employee", "employee")
+        try:
+            transport.start_scenario({"name": "bad_planner_attendance_query", "messages": []})
+            bad_plan = {"actions": ["APPLY_ATTENDANCE_CORRECTION"], "entities": {}}
+            with patch.object(app_module, "plan_conversation", return_value=bad_plan), patch.object(
+                app_module.Config, "GEMINI_PLANNER_ENABLED", True
+            ):
+                response, status = transport.send("Was I present day before yesterday?")
+                workflow = transport.active_workflow()
+        finally:
+            transport.close()
+
+        self.assertEqual(status, 200)
+        self.assertIn("attendance for", response.lower())
+        self.assertNotIn("what needs correction", response.lower())
+        self.assertIsNone(workflow)
+
+    def test_single_day_range_renders_as_daily_attendance(self):
+        target = date.today() - timedelta(days=1)
+        fake = FakeSupabase(
+            {
+                "attendance": [
+                    {
+                        "employee_id": "EMP101",
+                        "date": target.isoformat(),
+                        "status": "Present",
+                        "punch_in": "09:30:00",
+                        "punch_out": "18:30:00",
+                    }
+                ],
+                "leave_requests": [],
+            }
+        )
+
+        with patch.object(attendance_service, "supabase", fake):
+            reply = attendance_service.attendance_response(
+                "EMP101",
+                "Gaurav",
+                f"attendance from {target.isoformat()} to {target.isoformat()}",
+            )
+
+        self.assertIn(f"attendance for {target.isoformat()}", reply)
+        self.assertNotIn("Daily breakdown", reply)
+        self.assertNotIn("attendance from", reply.lower())
+
+    def test_attendance_correction_values_can_be_updated_before_confirm(self):
+        yesterday = date.today() - timedelta(days=1)
+        transport = stress_test.InProcessTransport("EMP101", "QA Employee", "employee")
+        try:
+            transport.start_scenario({"name": "attendance_correction_edit", "messages": []})
+            start_response, start_status = transport.send("I forgot to punch in yesterday")
+            detail_response, detail_status = transport.send("9:30 am to 6:30 pm")
+            update_response, update_status = transport.send("make punch out time 6:30 for yesterday")
+            submit_response, submit_status = transport.send("confirm")
+        finally:
+            transport.close()
+
+        self.assertEqual(start_status, 200)
+        self.assertIn("punch-in time", start_response.lower())
+        self.assertEqual(detail_status, 200)
+        self.assertIn(f"Date: {yesterday.isoformat()}", detail_response)
+        self.assertIn("Punch Out: 18:30:00", detail_response)
+        self.assertEqual(update_status, 200)
+        self.assertIn("Punch Out: 18:30:00", update_response)
+        self.assertEqual(submit_status, 200)
+        self.assertIn("submitted for manager approval", submit_response.lower())
+
+    def test_attendance_metric_queries_return_short_metric_response(self):
+        previous_month_end = date.today().replace(day=1) - timedelta(days=1)
+        fake = FakeSupabase(
+            {
+                "attendance": [
+                    {
+                        "employee_id": "EMP101",
+                        "date": previous_month_end.replace(day=2).isoformat(),
+                        "status": "Present",
+                        "punch_in": "10:15:00",
+                        "punch_out": "18:30:00",
+                    }
+                ],
+                "leave_requests": [],
+            }
+        )
+
+        with patch.object(attendance_service, "supabase", fake), patch.object(assistant_service, "supabase", fake):
+            response, _ = assistant_service.handle_advisory_message(
+                "EMP101", "Gaurav", "How many days was I late last month?"
+            )
+
+        reply = response.get_json()["reply"]
+        self.assertIn("late arrival", reply.lower())
+        self.assertNotIn("Daily breakdown", reply)
+
+    def test_attendance_metric_comparison_followup_stays_attendance(self):
+        transport = stress_test.InProcessTransport("EMP101", "QA Employee", "employee")
+        try:
+            transport.start_scenario({"name": "attendance_metric_followup", "messages": []})
+            metric_response, metric_status = transport.send("How many days was I late last month?")
+            compare_response, compare_status = transport.send("Compare it with last month.")
+        finally:
+            transport.close()
+
+        self.assertEqual(metric_status, 200)
+        self.assertIn("late arrival", metric_response.lower())
+        self.assertEqual(compare_status, 200)
+        self.assertIn("attendance comparison", compare_response.lower())
+        self.assertNotIn("expense claims", compare_response.lower())
+
+    def test_manager_team_attendance_queries_use_manager_hierarchy(self):
+        today = date.today()
+        fake = FakeSupabase(
+            {
+                "employees": [
+                    {"employee_id": "MGR001", "name": "Rahul", "role": "manager"},
+                    {"employee_id": "EMP101", "name": "Gaurav", "manager_id": "MGR001"},
+                    {"employee_id": "EMP102", "name": "Sneha", "manager_id": "MGR001"},
+                ],
+                "attendance": [
+                    {"employee_id": "EMP101", "date": today.isoformat(), "status": "Present", "punch_in": "09:15:00", "punch_out": None}
+                ],
+                "leave_requests": [],
+            }
+        )
+
+        with patch.object(attendance_service, "supabase", fake):
+            response = attendance_service.team_attendance_response("MGR001", "Rahul", "Who is absent today?")
+
+        self.assertIn("Employees absent", response)
+        self.assertIn("Sneha", response)
+        self.assertNotIn("Gaurav: Absent", response)
+
+    def test_conversation_planner_normalises_structured_attendance_entities(self):
+        plan = conversation_planner.normalise_plan(
+            {
+                "intent": "attendance_history",
+                "date_phrase": "last Monday",
+                "start_date": "2026-06-22",
+                "end_date": "2026-06-22",
+                "actions": [],
+            }
+        )
+
+        self.assertEqual(plan["actions"], ["GET_ATTENDANCE"])
+        self.assertEqual(plan["entities"]["date_phrase"], "last Monday")
+        self.assertEqual(plan["entities"]["start_date"], "2026-06-22")
+
+    def test_chat_calendar_no_longer_blocks_past_dates(self):
+        script = Path(app_module.app.root_path, "static", "script.js").read_text(encoding="utf-8")
+
+        self.assertNotIn("dateInput.min", script)
 
 
 if __name__ == "__main__":

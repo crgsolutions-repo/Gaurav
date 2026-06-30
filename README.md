@@ -7,10 +7,17 @@ AI-powered HR assistant built with Flask, Supabase, Gemini, HTML, CSS, and JavaS
 - Employee login with Flask sessions
 - Strict HR-scoped Gemini intent parsing
 - Attendance punch in and punch out
+- Attendance history for specific dates, relative dates, weeks, months, ranges, and complete history
+- Attendance summaries with daily breakdown, late arrival, early departure, half day, overtime, and attendance percentage metrics
+- Attendance correction requests with manager approval before records are updated
+- Manager team attendance queries and attendance correction approval screen
 - Leave balance lookup
 - Database-backed multi-step leave workflow
 - Leave submission for manager approval
 - Manager leave approval and rejection screen
+- Expense reimbursement workflow with OCR receipt validation
+- Payroll, payslip view, and payslip PDF download
+- Policy RAG foundation for company-policy guidance
 - Conversation logging
 
 ## Local Setup
@@ -34,7 +41,20 @@ If real keys were previously committed or shared, rotate them in the provider da
 
 Leave requests are saved as pending first. Leave balance is deducted only when a manager approves the request.
 
+Attendance correction requests are also saved as pending first. Employee correction submissions do not directly edit attendance records; attendance rows are updated only after manager approval.
+
 The chatbot is intentionally strict and should only answer company HR-related requests.
+
+Attendance metrics use these configurable defaults from `.env`:
+
+```env
+OFFICE_START_TIME=09:30
+OFFICE_END_TIME=18:30
+HALF_DAY_THRESHOLD_HOURS=4
+OVERTIME_THRESHOLD_HOURS=9
+```
+
+Run the latest `schema.sql` in Supabase after pulling attendance updates. It adds attendance metric columns and the `attendance_correction_requests` approval table.
 
 ## Tests
 

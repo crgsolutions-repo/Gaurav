@@ -43,6 +43,12 @@
                         <span class="notification-dot" aria-label="{{ employee.unseen_expense_approval_count }} unread expense approvals"></span>
                         {% endif %}
                     </a>
+                    <a class="approval-link" href="/manager/attendance">
+                        Attendance Corrections
+                        {% if employee.unseen_attendance_correction_count %}
+                        <span class="notification-dot" aria-label="{{ employee.unseen_attendance_correction_count }} unread attendance corrections"></span>
+                        {% endif %}
+                    </a>
                 </div>
                 {% endif %}
                 <a href="/logout">Logout</a>

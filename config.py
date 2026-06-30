@@ -34,6 +34,7 @@ class Config:
     GEMINI_EMBEDDING_DIMENSION = int(os.getenv("GEMINI_EMBEDDING_DIMENSION", "768"))
     GEMINI_TIMEOUT_SECONDS = float(os.getenv("GEMINI_TIMEOUT_SECONDS", "30"))
     GEMINI_PLANNER_ENABLED = os.getenv("GEMINI_PLANNER_ENABLED", "true").strip().lower() in {"1", "true", "yes", "on"}
+    INTENT_DEBUG_ENABLED = os.getenv("INTENT_DEBUG_ENABLED", "true").strip().lower() in {"1", "true", "yes", "on"}
     RAG_ENABLED = os.getenv("RAG_ENABLED", "true").strip().lower() in {"1", "true", "yes", "on"}
     POLICY_SOURCE_DIR = os.getenv("POLICY_SOURCE_DIR", str(BASE_DIR / "policies" / "source"))
     HR_CONTACT_EMAIL = os.getenv("HR_CONTACT_EMAIL")
@@ -50,6 +51,10 @@ class Config:
         "EXPENSE_UPLOAD_DIR",
         str(BASE_DIR / "uploads" / "expenses"),
     )
+    OFFICE_START_TIME = os.getenv("OFFICE_START_TIME", "09:30")
+    OFFICE_END_TIME = os.getenv("OFFICE_END_TIME", "18:30")
+    HALF_DAY_THRESHOLD_HOURS = float(os.getenv("HALF_DAY_THRESHOLD_HOURS", "4"))
+    OVERTIME_THRESHOLD_HOURS = float(os.getenv("OVERTIME_THRESHOLD_HOURS", "9"))
 
 
 def require_config(*names):
